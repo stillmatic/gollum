@@ -35,16 +35,14 @@ type getWeatherInput struct {
 
 func TestConstructJSONSchema(t *testing.T) {
 	t.Run("add_", func(t *testing.T) {
-		res, err := gollum.StructToJsonSchema("add_", "adds two numbers", addInput{})
-		assert.NoError(t, err)
+		res := gollum.StructToJsonSchema("add_", "adds two numbers", addInput{})
 		expectedStr := `{"name":"add_","description":"adds two numbers","parameters":{"properties":{"a":{"type":"integer"},"b":{"type":"integer"}},"type":"object","required":["a","b"]}}`
 		b, err := json.Marshal(res)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStr, string(b))
 	})
 	t.Run("getWeather", func(t *testing.T) {
-		res, err := gollum.StructToJsonSchema("getWeather", "Get the current weather in a given location", getWeatherInput{})
-		assert.NoError(t, err)
+		res := gollum.StructToJsonSchema("getWeather", "Get the current weather in a given location", getWeatherInput{})
 		assert.Equal(t, res.Name, "getWeather")
 		assert.Equal(t, res.Description, "Get the current weather in a given location")
 		assert.Equal(t, res.Parameters.Type, "object")
@@ -140,8 +138,7 @@ func TestEndToEnd(t *testing.T) {
 
 	api := NewTestAPI(baseAPIURL, openAIKey)
 
-	fi, err := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
-	assert.NoError(t, err)
+	fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
 	chatRequest := chatCompletionRequest{
 		ChatCompletionRequest: openai.ChatCompletionRequest{

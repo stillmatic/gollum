@@ -11,20 +11,20 @@ import (
 )
 
 type employee struct {
-	Name string `json:"name" yaml:"name" validate:"required"`
-	Age  int    `json:"age" yaml:"age" validate:"gte=18,lte=60"`
+	Name string `json:"name" yaml:"name" jsonschema:"required,minLength=1,maxLength=100"`
+	Age  int    `json:"age" yaml:"age" jsonschema:"minimum=18,maximum=80,required"`
 }
 
 type company struct {
-	Name      string      `json:"name" yaml:"name"`
-	Employees []*employee `json:"employees" yaml:"employees"`
+	Name      string     `json:"name" yaml:"name"`
+	Employees []employee `json:"employees,omitempty" yaml:"employees"`
 }
 
 type bulletList []string
 
 var testCo = company{
 	Name: "Acme",
-	Employees: []*employee{
+	Employees: []employee{
 		{
 			Name: "John",
 			Age:  30,
@@ -63,8 +63,8 @@ func TestParsers(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = employeeParser.Parse(context.Background(), string(input2))
 		assert.Error(t, err)
-
 	})
+
 	t.Run("YAMLParser", func(t *testing.T) {
 		// test struct
 		yamlParser := gollum.NewYamlParser[company](true)
@@ -94,6 +94,15 @@ func TestParsers(t *testing.T) {
 		resp, err := yamlParser.Parse(context.Background(), string(input))
 		assert.Error(t, err)
 		_ = resp
+	})
+
+	t.Run("testbenchmark", func(t *testing.T) {
+		jsonParser := gollum.NewJSONParser[company](true)
+		input, err := json.Marshal(testCo)
+		assert.NoError(t, err)
+		actual, err := jsonParser.Parse(context.Background(), string(input))
+		assert.NoError(t, err)
+		assert.Equal(t, testCo.Name, actual.Name)
 	})
 }
 

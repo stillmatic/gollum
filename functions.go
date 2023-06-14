@@ -1,7 +1,6 @@
 package gollum
 
 import (
-	"errors"
 	"reflect"
 
 	"github.com/invopop/jsonschema"
@@ -13,15 +12,15 @@ type FunctionInput struct {
 	Parameters  jsonschema.Schema `json:"parameters"`
 }
 
-func StructToJsonSchema(functionName string, functionDescription string, inputStruct interface{}) (FunctionInput, error) {
-	var functionInput FunctionInput
+func StructToJsonSchema(functionName string, functionDescription string, inputStruct interface{}) FunctionInput {
 	t := reflect.TypeOf(inputStruct)
 	schema := jsonschema.ReflectFromType(reflect.Type(t))
 	inputStructName := t.Name()
-	// only get the
+	// only get the single struct we care about
 	inputProperties, ok := schema.Definitions[inputStructName]
 	if !ok {
-		return functionInput, errors.New("could not find input struct in schema")
+		// this should not happen
+		panic("could not find input struct in schema")
 	}
 	parameters := jsonschema.Schema{
 		Type:       "object",
@@ -32,5 +31,5 @@ func StructToJsonSchema(functionName string, functionDescription string, inputSt
 		Name:        functionName,
 		Description: functionDescription,
 		Parameters:  parameters,
-	}, nil
+	}
 }
