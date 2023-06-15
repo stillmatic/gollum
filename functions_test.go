@@ -55,12 +55,12 @@ func TestConstructJSONSchema(t *testing.T) {
 
 type chatCompletionMessage struct {
 	openai.ChatCompletionMessage
-	FunctionCall functionCallResult `json:"function_call,omitempty"`
+	FunctionCall functionCall `json:"function_call,omitempty"`
 }
 
-type functionCallResult struct {
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"`
+type functionCall struct {
+	Name      string `json:"name,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
 }
 
 type chatCompletionRequest struct {
@@ -137,42 +137,87 @@ func TestEndToEnd(t *testing.T) {
 	assert.NotEmpty(t, openAIKey)
 
 	api := NewTestAPI(baseAPIURL, openAIKey)
+	t.Run("weather", func(t *testing.T) {
+		fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
-	fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
-
-	chatRequest := chatCompletionRequest{
-		ChatCompletionRequest: openai.ChatCompletionRequest{
-			Model: "gpt-3.5-turbo-0613",
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    "user",
-					Content: "Whats the temperature in Boston?",
+		chatRequest := chatCompletionRequest{
+			ChatCompletionRequest: openai.ChatCompletionRequest{
+				Model: "gpt-3.5-turbo-0613",
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role:    "user",
+						Content: "Whats the temperature in Boston?",
+					},
 				},
+				MaxTokens:   256,
+				Temperature: 0.0,
 			},
-			MaxTokens:   512,
-			Temperature: 0.0,
-		},
-		Functions: []gollum.FunctionInput{
-			fi,
-		},
-		FunctionCall: "auto",
-	}
+			Functions: []gollum.FunctionInput{fi},
+		}
 
-	ctx := context.Background()
-	resp, err := api.SendRequest(ctx, chatRequest)
-	assert.NoError(t, err)
+		ctx := context.Background()
+		resp, err := api.SendRequest(ctx, chatRequest)
+		assert.NoError(t, err)
 
-	assert.Equal(t, resp.Model, "gpt-3.5-turbo-0613")
-	assert.NotEmpty(t, resp.Choices)
-	assert.Empty(t, resp.Choices[0].Message.Content)
-	assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
-	assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "weather")
+		assert.Equal(t, resp.Model, "gpt-3.5-turbo-0613")
+		assert.NotEmpty(t, resp.Choices)
+		assert.Empty(t, resp.Choices[0].Message.Content)
+		assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
+		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "weather")
 
-	expectedArg := `{"location": "Boston, MA"}`
-	parser := gollum.NewJSONParser[getWeatherInput](false)
-	expectedStruct, err := parser.Parse(ctx, expectedArg)
-	assert.NoError(t, err)
-	input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedStruct, input)
+		// this is somewhat flaky - about 20% of the time it returns 'Boston'
+		expectedArg := `{"location": "Boston, MA"}`
+		parser := gollum.NewJSONParser[getWeatherInput](false)
+		expectedStruct, err := parser.Parse(ctx, expectedArg)
+		assert.NoError(t, err)
+		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedStruct, input)
+	})
+
+	t.Run("callOpenAI", func(t *testing.T) {
+		fi := gollum.StructToJsonSchema("ChatCompletion", "Call the OpenAI chat completion API", chatCompletionRequest{})
+
+		chatRequest := chatCompletionRequest{
+			ChatCompletionRequest: openai.ChatCompletionRequest{
+				Model: "gpt-3.5-turbo-0613",
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role:    openai.ChatMessageRoleSystem,
+						Content: "Construct a ChatCompletionRequest to answer the user's question, but using Kirby references. Do not answer the question directly using prior knowledge, you must generate a ChatCompletionRequest that will answer the question.",
+					},
+					{
+						Role:    openai.ChatMessageRoleUser,
+						Content: "What is the definition of recursion?",
+					},
+				},
+				MaxTokens:   256,
+				Temperature: 0.0,
+			},
+			Functions: []gollum.FunctionInput{fi},
+		}
+
+		ctx := context.Background()
+		resp, err := api.SendRequest(ctx, chatRequest)
+		assert.NoError(t, err)
+		assert.Equal(t, resp.Model, "gpt-3.5-turbo-0613")
+		assert.NotEmpty(t, resp.Choices)
+		assert.Empty(t, resp.Choices[0].Message.Content)
+		assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
+		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "ChatCompletion")
+
+		parser := gollum.NewJSONParser[openai.ChatCompletionRequest](false)
+		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, input)
+
+		// an example output:
+		//  "{
+		//   "model": "gpt-3.5-turbo",
+		//   "messages": [
+		//     {"role": "system", "content": "You are Kirby, a friendly virtual assistant."},
+		//     {"role": "user", "content": "What is the definition of recursion?"}
+		//   ]
+		// }"
+	})
 }
