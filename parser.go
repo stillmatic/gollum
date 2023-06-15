@@ -53,21 +53,22 @@ func NewJSONParser[T any](validate bool) *JSONParser[T] {
 
 func (p *JSONParser[T]) Parse(ctx context.Context, input string) (T, error) {
 	var t T
-	var v interface{}
-	// annoying, must pass an interface to the validate function
-	// so we have to unmarshal to interface{}
-	err := json.Unmarshal([]byte(input), &v)
-	if err != nil {
-		return t, errors.Wrap(err, "could not unmarshal input json to interface")
-	}
 	// but also unmarshal to the struct because it's easy to get a type conversion error
 	// e.g. if go struct name doesn't match the json name
-	err = json.Unmarshal([]byte(input), &t)
+	err := json.Unmarshal([]byte(input), &t)
 	if err != nil {
 		return t, errors.Wrap(err, "could not unmarshal input json to struct")
 	}
+
+	// annoying, must pass an interface to the validate function
+	// so we have to unmarshal to interface{} twice
 	if p.validate {
-		err := p.schema.Validate(v)
+		var v interface{}
+		err := json.Unmarshal([]byte(input), &v)
+		if err != nil {
+			return t, errors.Wrap(err, "could not unmarshal input json to interface")
+		}
+		err = p.schema.Validate(v)
 		if err != nil {
 			return t, errors.Wrap(err, "error validating input json")
 		}
