@@ -1,15 +1,16 @@
 package gollum
 
 import (
+	"encoding/json"
 	"reflect"
 
 	"github.com/invopop/jsonschema"
 )
 
 type FunctionInput struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Parameters  jsonschema.Schema `json:"parameters"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	Parameters  json.RawMessage `json:"parameters"`
 }
 
 func StructToJsonSchema(functionName string, functionDescription string, inputStruct interface{}) FunctionInput {
@@ -27,9 +28,13 @@ func StructToJsonSchema(functionName string, functionDescription string, inputSt
 		Properties: inputProperties.Properties,
 		Required:   inputProperties.Required,
 	}
+	pbytes, err := parameters.MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
 	return FunctionInput{
 		Name:        functionName,
 		Description: functionDescription,
-		Parameters:  parameters,
+		Parameters:  pbytes,
 	}
 }

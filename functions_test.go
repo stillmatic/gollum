@@ -45,7 +45,7 @@ func TestConstructJSONSchema(t *testing.T) {
 		res := gollum.StructToJsonSchema("getWeather", "Get the current weather in a given location", getWeatherInput{})
 		assert.Equal(t, res.Name, "getWeather")
 		assert.Equal(t, res.Description, "Get the current weather in a given location")
-		assert.Equal(t, res.Parameters.Type, "object")
+		// assert.Equal(t, res.Parameters.Type, "object")
 		expectedStr := `{"name":"getWeather","description":"Get the current weather in a given location","parameters":{"properties":{"location":{"type":"string","description":"The city and state, e.g. San Francisco, CA"},"unit":{"type":"string","enum":["celsius","fahrenheit"],"description":"The unit of temperature"}},"type":"object","required":["location"]}}`
 		b, err := json.Marshal(res)
 		assert.NoError(t, err)
