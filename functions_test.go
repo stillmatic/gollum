@@ -33,6 +33,11 @@ type getWeatherInput struct {
 	Unit     string `json:"unit,omitempty" jsonschema:"enum=celsius,enum=fahrenheit" jsonschema_description:"The unit of temperature,default=fahrenheit"`
 }
 
+type counter struct {
+	Count int      `json:"count" jsonschema:"required" jsonschema_description:"total number of words in sentence"`
+	Words []string `json:"words" jsonschema:"required" jsonschema_description:"list of words in sentence"`
+}
+
 func TestConstructJSONSchema(t *testing.T) {
 	t.Run("add_", func(t *testing.T) {
 		res := gollum.StructToJsonSchema("add_", "adds two numbers", addInput{})
@@ -138,6 +143,7 @@ func TestEndToEnd(t *testing.T) {
 
 	api := NewTestAPI(baseAPIURL, openAIKey)
 	t.Run("weather", func(t *testing.T) {
+		t.Skip("somewhat flaky - word counter is more reliable")
 		fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
 		chatRequest := chatCompletionRequest{
@@ -170,6 +176,42 @@ func TestEndToEnd(t *testing.T) {
 		parser := gollum.NewJSONParser[getWeatherInput](false)
 		expectedStruct, err := parser.Parse(ctx, expectedArg)
 		assert.NoError(t, err)
+		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedStruct, input)
+	})
+
+	t.Run("counter", func(t *testing.T) {
+		fi := gollum.StructToJsonSchema("split_word", "Break sentences into words", counter{})
+		chatRequest := chatCompletionRequest{
+			ChatCompletionRequest: openai.ChatCompletionRequest{
+				Model: "gpt-3.5-turbo-0613",
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role:    "user",
+						Content: "「What is the weather like in Boston?」Break down the above sentence into words",
+					},
+				},
+				MaxTokens:   256,
+				Temperature: 0.0,
+			},
+			Functions: []gollum.FunctionInput{fi},
+		}
+		ctx := context.Background()
+		resp, err := api.SendRequest(ctx, chatRequest)
+		assert.NoError(t, err)
+
+		assert.Equal(t, resp.Model, "gpt-3.5-turbo-0613")
+		assert.NotEmpty(t, resp.Choices)
+		assert.Empty(t, resp.Choices[0].Message.Content)
+		assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
+		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "split_word")
+
+		expectedStruct := counter{
+			Count: 7,
+			Words: []string{"What", "is", "the", "weather", "like", "in", "Boston?"},
+		}
+		parser := gollum.NewJSONParser[counter](false)
 		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStruct, input)
