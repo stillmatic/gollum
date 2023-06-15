@@ -9,6 +9,7 @@ Production-grade LLM tooling. At least, in theory -- stuff changes fast so don't
     - SIMD acceleration for 10x better perf than naive approach, constant memory usage
     - Drop-in integration with OpenAI and other embedding providers
     - Carefully mocked, tested, and benchmarked.
+- Implementation of HyDE (hypothetical documents embeddings) for enhanced retrieval
 - MIT License
 
 # Examples
