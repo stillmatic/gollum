@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
 	"github.com/stretchr/testify/assert"
@@ -24,26 +23,30 @@ func getRandomEmbedding(n int) []float32 {
 }
 
 // setup with godotenv load
-func initialize(tb testing.TB, mock bool) (gollum.LLM, *gollum.MemoryVectorStore) {
+func initialize(tb testing.TB) (*mock_gollum.MockLLM, *gollum.MemoryVectorStore) {
 	tb.Helper()
 
-	// instantiate with API key
-	var oai gollum.LLM
-	oai = openai.NewClient(os.Getenv("OPENAI_API_KEY"))
 	ctrl := gomock.NewController(tb)
-	if mock {
-		oai = mock_gollum.NewMockLLM(ctrl)
-	}
+	oai := mock_gollum.NewMockLLM(ctrl)
 	ctx := context.Background()
-	bucket, err := fileblob.OpenBucket("../testdata", nil)
+	bucket, err := fileblob.OpenBucket("testdata", nil)
 	assert.NoError(tb, err)
 	mvs, err := gollum.NewMemoryVectorStoreFromDisk(ctx, bucket, "simple_store.json", oai)
 	if err != nil {
 		fmt.Println(err)
 		mvs = gollum.NewMemoryVectorStore(oai)
 		testStrs := []string{"Apple", "Orange", "Basketball"}
-		for _, s := range testStrs {
+		for i, s := range testStrs {
 			mv := gollum.NewDocumentFromString(s)
+			expectedReq := openai.EmbeddingRequest{
+				Input: []string{s},
+				Model: openai.AdaEmbeddingV2,
+			}
+			val := float64(i) + 0.1
+			expectedResp := openai.EmbeddingResponse{
+				Data: []openai.Embedding{{Embedding: []float32{float32(0.1), float32(val), float32(val)}}},
+			}
+			oai.EXPECT().CreateEmbeddings(ctx, expectedReq).Return(expectedResp, nil)
 			err := mvs.Insert(ctx, mv)
 			assert.NoError(tb, err)
 		}
@@ -55,7 +58,7 @@ func initialize(tb testing.TB, mock bool) (gollum.LLM, *gollum.MemoryVectorStore
 
 // TestRetrieval tests inserting embeddings and retrieving them
 func TestMemoryVectorStore(t *testing.T) {
-	_, mvs := initialize(t, false)
+	mockllm, mvs := initialize(t)
 	ctx := context.Background()
 	t.Run("LoadFromDisk", func(t *testing.T) {
 		t.Log(mvs.Documents)
@@ -81,6 +84,18 @@ func TestMemoryVectorStore(t *testing.T) {
 			Query: "favorite fruit?",
 			K:     k,
 		}
+		expectedCreateReq := openai.EmbeddingRequest{
+			Input: []string{"favorite fruit?"},
+			Model: openai.AdaEmbeddingV2,
+		}
+		expectedCreateResp := openai.EmbeddingResponse{
+			Data: []openai.Embedding{
+				{
+					Embedding: []float32{float32(0.1), float32(0.1), float32(0.1)},
+				},
+			},
+		}
+		mockllm.EXPECT().CreateEmbeddings(ctx, expectedCreateReq).Return(expectedCreateResp, nil)
 		resp, err := mvs.Query(ctx, qb)
 		assert.NoError(t, err)
 		assert.Equal(t, k, len(resp))
@@ -96,6 +111,15 @@ func TestMemoryVectorStore(t *testing.T) {
 			EmbeddingStrings: []string{"favorite sport?"},
 			K:                k,
 		}
+		expectedCreateReq := openai.EmbeddingRequest{
+			Input: []string{"favorite sport?"},
+			Model: openai.AdaEmbeddingV2,
+		}
+		expectedCreateResp := openai.EmbeddingResponse{
+			Data: []openai.Embedding{
+				{Embedding: []float32{float32(0.1), float32(2.11), float32(2.11)}},
+			}}
+		mockllm.EXPECT().CreateEmbeddings(ctx, expectedCreateReq).Return(expectedCreateResp, nil)
 		resp, err := mvs.Query(ctx, qb)
 		assert.NoError(t, err)
 		assert.Equal(t, k, len(resp))
