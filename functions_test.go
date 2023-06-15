@@ -29,8 +29,8 @@ func add_(input addInput) (addOutput, error) {
 }
 
 type getWeatherInput struct {
-	Location string `json:"location" jsonschema_description:"The city and state, e.g. San Francisco, CA" jsonschema:"required"`
-	Unit     string `json:"unit,omitempty" jsonschema:"enum=celsius,enum=fahrenheit" jsonschema_description:"The unit of temperature"`
+	Location string `json:"location" jsonschema_description:"The city and state." jsonschema:"required,example=San Francisco, CA"`
+	Unit     string `json:"unit,omitempty" jsonschema:"enum=celsius,enum=fahrenheit" jsonschema_description:"The unit of temperature,default=fahrenheit"`
 }
 
 func TestConstructJSONSchema(t *testing.T) {
