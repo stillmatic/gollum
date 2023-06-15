@@ -1,0 +1,151 @@
+package gollum_test
+
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"os"
+	"testing"
+
+	"github.com/golang/mock/gomock"
+	openai "github.com/sashabaranov/go-openai"
+	"github.com/stillmatic/gollum"
+	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
+	"github.com/stretchr/testify/assert"
+	"gocloud.dev/blob/fileblob"
+)
+
+func getRandomEmbedding(n int) []float32 {
+	vec := make([]float32, n)
+	for i := range vec {
+		vec[i] = rand.Float32()
+	}
+	return vec
+}
+
+// setup with godotenv load
+func initialize(tb testing.TB, mock bool) (gollum.LLM, *gollum.MemoryVectorStore) {
+	tb.Helper()
+
+	// instantiate with API key
+	var oai gollum.LLM
+	oai = openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+	ctrl := gomock.NewController(tb)
+	if mock {
+		oai = mock_gollum.NewMockLLM(ctrl)
+	}
+	ctx := context.Background()
+	bucket, err := fileblob.OpenBucket("../testdata", nil)
+	assert.NoError(tb, err)
+	mvs, err := gollum.NewMemoryVectorStoreFromDisk(ctx, bucket, "simple_store.json", oai)
+	if err != nil {
+		fmt.Println(err)
+		mvs = gollum.NewMemoryVectorStore(oai)
+		testStrs := []string{"Apple", "Orange", "Basketball"}
+		for _, s := range testStrs {
+			mv := gollum.NewDocumentFromString(s)
+			err := mvs.Insert(ctx, mv)
+			assert.NoError(tb, err)
+		}
+		err := mvs.Persist(ctx, bucket, "simple_store.json")
+		assert.NoError(tb, err)
+	}
+	return oai, mvs
+}
+
+// TestRetrieval tests inserting embeddings and retrieving them
+func TestMemoryVectorStore(t *testing.T) {
+	_, mvs := initialize(t, false)
+	ctx := context.Background()
+	t.Run("LoadFromDisk", func(t *testing.T) {
+		t.Log(mvs.Documents)
+		assert.Equal(t, 3, len(mvs.Documents))
+		// check that an ID is in the map
+		testStrs := []string{"Apple", "Orange", "Basketball"}
+		// test that all the strings are in the documents
+		for _, s := range mvs.Documents {
+			found := false
+			for _, t := range testStrs {
+				if s.Content == t {
+					found = true
+				}
+			}
+			assert.True(t, found)
+		}
+	})
+
+	// should return apple and orange first.
+	t.Run("QueryWithQuery", func(t *testing.T) {
+		k := 2
+		qb := gollum.QueryRequest{
+			Query: "favorite fruit?",
+			K:     k,
+		}
+		resp, err := mvs.Query(ctx, qb)
+		assert.NoError(t, err)
+		assert.Equal(t, k, len(resp))
+		assert.Equal(t, "Apple", resp[0].Content)
+		assert.Equal(t, "Orange", resp[1].Content)
+	})
+
+	// This should return basketball because the embedding str should override the query
+	t.Run("QueryWithEmbedding", func(t *testing.T) {
+		k := 1
+		qb := gollum.QueryRequest{
+			Query:            "What is your favorite fruit",
+			EmbeddingStrings: []string{"favorite sport?"},
+			K:                k,
+		}
+		resp, err := mvs.Query(ctx, qb)
+		assert.NoError(t, err)
+		assert.Equal(t, k, len(resp))
+		assert.Equal(t, "Basketball", resp[0].Content)
+	})
+}
+
+// func getRandomEmbeddingResponse(n int, dim int) openai.EmbeddingResponse {
+// 	data := make([]openai.Embedding, n)
+// 	for i := range data {
+// 		data[i] = openai.Embedding{
+// 			Embedding: getRandomEmbedding(dim),
+// 		}
+// 	}
+// 	resp := openai.EmbeddingResponse{
+// 		Data: data,
+// 	}
+// 	return resp
+// }
+
+func BenchmarkMemoryVectorStore(b *testing.B) {
+	llm := mock_gollum.NewMockLLM(gomock.NewController(b))
+	ctx := context.Background()
+
+	nValues := []int{10, 100, 1_000, 10_000, 100_000, 1_000_000}
+	kValues := []int{1, 10, 100}
+	for _, n := range nValues {
+		for _, k := range kValues {
+			if k <= n {
+				b.Run(fmt.Sprintf("BenchmarkQuery-n=%v-k=%v", n, k), func(b *testing.B) {
+					mvs := gollum.NewMemoryVectorStore(llm)
+					for j := 0; j < n; j++ {
+						mv := gollum.Document{
+							ID:        fmt.Sprintf("%v", j),
+							Content:   "test",
+							Embedding: getRandomEmbedding(1536),
+						}
+						mvs.Insert(ctx, mv)
+					}
+					qb := gollum.QueryRequest{
+						EmbeddingFloats: getRandomEmbedding(1536),
+						K:               k,
+					}
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						_, err := mvs.Query(ctx, qb)
+						assert.NoError(b, err)
+					}
+				})
+			}
+		}
+	}
+}
