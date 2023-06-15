@@ -3,6 +3,7 @@ package gollum
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -189,6 +190,52 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Docum
 	result := make([]Document, k)
 	for i := 0; i < k; i++ {
 		result[k-i-1] = scores.Pop().Document
+	}
+	return result, nil
+}
+
+// QueryNaive does a sort without a heap. Purely for benchmarking, don't use it
+func (m *MemoryVectorStore) QueryNaive(ctx context.Context, qb QueryRequest) ([]Document, error) {
+	if len(m.Documents) == 0 {
+		return nil, errors.New("no documents in store")
+	}
+	if len(qb.EmbeddingStrings) > 0 {
+		// concatenate strings and set query
+		qb.Query = strings.Join(qb.EmbeddingStrings, " ")
+	}
+	if len(qb.EmbeddingFloats) == 0 {
+		// create embedding
+		embedding, err := m.LLM.CreateEmbeddings(ctx, openai.EmbeddingRequest{
+			Input: []string{qb.Query},
+			// TODO: make this configurable
+			Model: openai.AdaEmbeddingV2,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create embedding")
+		}
+		qb.EmbeddingFloats = embedding.Data[0].Embedding
+	}
+	scores := make([]nodeSimilarity, len(m.Documents))
+
+	for i, doc := range m.Documents {
+		score := vek32.CosineSimilarity(qb.EmbeddingFloats, doc.Embedding)
+		ns := nodeSimilarity{
+			Document:   doc,
+			Similarity: score,
+		}
+		scores[i] = ns
+	}
+	// sort and return top k
+	sort.Slice(scores, func(i, j int) bool {
+		return scores[i].Similarity > scores[j].Similarity
+	})
+	k := qb.K
+	if k > len(scores) {
+		k = len(scores)
+	}
+	result := make([]Document, k)
+	for i := 0; i < k; i++ {
+		result[i] = scores[i].Document
 	}
 	return result, nil
 }

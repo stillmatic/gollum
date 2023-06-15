@@ -145,10 +145,31 @@ func BenchmarkMemoryVectorStore(b *testing.B) {
 	ctx := context.Background()
 
 	nValues := []int{10, 100, 1_000, 10_000, 100_000, 1_000_000}
-	kValues := []int{1, 10, 100}
+	// kValues := []int{1, 10, 100}
+	kValues := []int{20}
 	for _, n := range nValues {
 		for _, k := range kValues {
 			if k <= n {
+				b.Run(fmt.Sprintf("BenchmarkQueryNaive-n=%v-k=%v", n, k), func(b *testing.B) {
+					mvs := gollum.NewMemoryVectorStore(llm)
+					for j := 0; j < n; j++ {
+						mv := gollum.Document{
+							ID:        fmt.Sprintf("%v", j),
+							Content:   "test",
+							Embedding: getRandomEmbedding(1536),
+						}
+						mvs.Insert(ctx, mv)
+					}
+					qb := gollum.QueryRequest{
+						EmbeddingFloats: getRandomEmbedding(1536),
+						K:               k,
+					}
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						_, err := mvs.QueryNaive(ctx, qb)
+						assert.NoError(b, err)
+					}
+				})
 				b.Run(fmt.Sprintf("BenchmarkQuery-n=%v-k=%v", n, k), func(b *testing.B) {
 					mvs := gollum.NewMemoryVectorStore(llm)
 					for j := 0; j < n; j++ {
