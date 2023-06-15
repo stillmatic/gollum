@@ -127,19 +127,6 @@ func TestMemoryVectorStore(t *testing.T) {
 	})
 }
 
-// func getRandomEmbeddingResponse(n int, dim int) openai.EmbeddingResponse {
-// 	data := make([]openai.Embedding, n)
-// 	for i := range data {
-// 		data[i] = openai.Embedding{
-// 			Embedding: getRandomEmbedding(dim),
-// 		}
-// 	}
-// 	resp := openai.EmbeddingResponse{
-// 		Data: data,
-// 	}
-// 	return resp
-// }
-
 func BenchmarkMemoryVectorStore(b *testing.B) {
 	llm := mock_gollum.NewMockLLM(gomock.NewController(b))
 	ctx := context.Background()
