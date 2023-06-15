@@ -1,8 +1,15 @@
-# Go-LLuM
+# GOLLuM
 
-production-grade LLM tooling
+Production-grade LLM tooling. At least, in theory -- stuff changes fast so don't expect stability from this library so much as ideas for your own apps.
 
-MIT license
+## Features
+
+- Parses arbitrary Go structs into JSONSchema for OpenAI - and validates when unmarshaling back to your structs
+- Highly performant vector store solution with exact search 
+    - SIMD acceleration for 10x better perf than naive approach, constant memory usage
+    - Drop-in integration with OpenAI and other embedding providers
+    - Carefully mocked, tested, and benchmarked.
+- MIT License
 
 # Examples
 
@@ -102,13 +109,13 @@ input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
 On the first try, this yielded the following result:
 
 ```json
- "{
+ {
   "model": "gpt-3.5-turbo",
   "messages": [
     {"role": "system", "content": "You are Kirby, a friendly virtual assistant."},
     {"role": "user", "content": "What is the definition of recursion?"}
   ]
-}"
+}
 ```
 
 That's really sick considering that _no_ effort was put into manually creating a new JSON struct, and the original struct didn't have any JSONSchema tags - just JSON serdes comments.
