@@ -38,6 +38,12 @@ type counter struct {
 	Words []string `json:"words" jsonschema:"required" jsonschema_description:"list of words in sentence"`
 }
 
+type blobNode struct {
+	Name     string      `json:"name" jsonschema:"required"`
+	Children []*blobNode `json:"children,omitempty" jsonschema_description:"list of child nodes - only applicable if this is a directory"`
+	NodeType string      `json:"node_type" jsonschema:"required,enum=file,enum=folder" jsonschema_description:"type of node, inferred from name"`
+}
+
 func TestConstructJSONSchema(t *testing.T) {
 	t.Run("add_", func(t *testing.T) {
 		res := gollum.StructToJsonSchema("add_", "adds two numbers", addInput{})
@@ -261,5 +267,83 @@ func TestEndToEnd(t *testing.T) {
 		//     {"role": "user", "content": "What is the definition of recursion?"}
 		//   ]
 		// }"
+	})
+
+	t.Run("directory", func(t *testing.T) {
+		fi := gollum.StructToJsonSchema("directory", "Get the contents of a directory", blobNode{})
+		inp := `root
+├── dir1
+│   ├── file1.txt
+│   └── file2.txt
+└── dir2
+	├── file3.txt
+	└── subfolder
+		└── file4.txt`
+
+		chatRequest := chatCompletionRequest{
+			ChatCompletionRequest: openai.ChatCompletionRequest{
+				Model: "gpt-3.5-turbo-0613",
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role:    "user",
+						Content: inp,
+					},
+				},
+				MaxTokens:   256,
+				Temperature: 0.0,
+			},
+			Functions: []gollum.FunctionInput{fi},
+		}
+		ctx := context.Background()
+		resp, err := api.SendRequest(ctx, chatRequest)
+		assert.NoError(t, err)
+		t.Log(resp)
+		assert.Equal(t, 0, 1)
+
+		parser := gollum.NewJSONParser[blobNode](false)
+		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, input)
+		assert.Equal(t, input, blobNode{
+			Name: "root",
+			Children: []*blobNode{
+				{
+					Name: "dir1",
+					Children: []*blobNode{
+						{
+							Name:     "file1.txt",
+							NodeType: "file",
+						},
+						{
+							Name:     "file2.txt",
+							NodeType: "file",
+						},
+					},
+					NodeType: "folder",
+				},
+				{
+					Name: "dir2",
+					Children: []*blobNode{
+						{
+							Name:     "file3.txt",
+							NodeType: "file",
+						},
+						{
+							Name: "subfolder",
+							Children: []*blobNode{
+								{
+									Name:     "file4.txt",
+									NodeType: "file",
+								},
+							},
+							NodeType: "folder",
+						},
+					},
+					NodeType: "folder",
+				},
+			},
+			NodeType: "folder",
+		})
+
 	})
 }
