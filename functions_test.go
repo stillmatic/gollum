@@ -39,9 +39,15 @@ type counter struct {
 }
 
 type blobNode struct {
-	Name     string      `json:"name" jsonschema:"required"`
-	Children []*blobNode `json:"children,omitempty" jsonschema_description:"list of child nodes - only applicable if this is a directory"`
-	NodeType string      `json:"node_type" jsonschema:"required,enum=file,enum=folder" jsonschema_description:"type of node, inferred from name"`
+	Name     string     `json:"name" jsonschema:"required"`
+	Children []blobNode `json:"children,omitempty" jsonschema_description:"list of child nodes - only applicable if this is a directory"`
+	NodeType string     `json:"node_type" jsonschema:"required,enum=file,enum=folder" jsonschema_description:"type of node, inferred from name"`
+}
+
+type queryNode struct {
+	Question string `json:"question" jsonschema:"required" jsonschema_description:"question to ask - questions can use information from children questions"`
+	// NodeType string      `json:"node_type" jsonschema:"required,enum=single_question,enum=merge_responses" jsonschema_description:"type of question. Either a single question or a multi question merge when there are multiple questions."`
+	Children []queryNode `json:"children,omitempty" jsonschema_description:"list of child questions that need to be answered before this question can be answered. Use a subquery when anything may be unknown, and we need to ask multiple questions to get the answer. Dependences must only be other queries."`
 }
 
 func TestConstructJSONSchema(t *testing.T) {
@@ -306,10 +312,10 @@ func TestEndToEnd(t *testing.T) {
 		assert.NotEmpty(t, input)
 		assert.Equal(t, input, blobNode{
 			Name: "root",
-			Children: []*blobNode{
+			Children: []blobNode{
 				{
 					Name: "dir1",
-					Children: []*blobNode{
+					Children: []blobNode{
 						{
 							Name:     "file1.txt",
 							NodeType: "file",
@@ -323,14 +329,14 @@ func TestEndToEnd(t *testing.T) {
 				},
 				{
 					Name: "dir2",
-					Children: []*blobNode{
+					Children: []blobNode{
 						{
 							Name:     "file3.txt",
 							NodeType: "file",
 						},
 						{
 							Name: "subfolder",
-							Children: []*blobNode{
+							Children: []blobNode{
 								{
 									Name:     "file4.txt",
 									NodeType: "file",
@@ -344,6 +350,40 @@ func TestEndToEnd(t *testing.T) {
 			},
 			NodeType: "folder",
 		})
+	})
+	t.Run("planner", func(t *testing.T) {
+		fi := gollum.StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
+		// inp := `Jason is from Canada`
+
+		chatRequest := chatCompletionRequest{
+			ChatCompletionRequest: openai.ChatCompletionRequest{
+				Model: "gpt-3.5-turbo-0613",
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role: "system",
+						Content: `When a user asks a question, you must use the 'queryPlanner' function to answer the question. If you are at all unsure, break the question into multiple smaller questions
+Example:
+Input: What is the population of Jason's home country?
+
+Output:  What is the population of Jason's home country?
+│   ├── What is Jason's home country? 
+│   ├── What is the population of that country?`,
+					},
+					{
+						Role:    "user",
+						Content: "What's on the flag of Jason's home country?",
+					},
+				},
+				MaxTokens:   256,
+				Temperature: 0.0,
+			},
+			Functions: []gollum.FunctionInput{fi},
+		}
+		ctx := context.Background()
+		resp, err := api.SendRequest(ctx, chatRequest)
+		assert.NoError(t, err)
+		t.Log(resp)
+		assert.Equal(t, 0, 1)
 
 	})
 }
