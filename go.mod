@@ -2,7 +2,7 @@ module github.com/stillmatic/gollum
 
 go 1.20
 
-replace github.com/github.com/sashabaranov/go-openai => github.com/stillmatic/go-openai v0.0.0-20230620011545-174aa6920f6b
+replace github.com/github.com/sashabaranov/go-openai => github.com/stillmatic/go-openai v0.0.0-20230620152722-e7123ab7c836
 
 require (
 	github.com/chewxy/math32 v1.10.1
