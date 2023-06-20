@@ -16,3 +16,14 @@ type LLM interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
 	CreateEmbeddings(context.Context, openai.EmbeddingRequest) (openai.EmbeddingResponse, error)
 }
+
+// LLMWithRetry is a wrapper around an LLM that retries N times
+// with exponential backoff.
+type LLMWithRetry struct {
+	llm LLM
+	N   int
+}
+
+func NewLLMWithRetry(llm LLM, n int) *LLMWithRetry {
+	return &LLMWithRetry{llm: llm, N: n}
+}

@@ -184,11 +184,11 @@ func TestEndToEnd(t *testing.T) {
 		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "weather")
 
 		// this is somewhat flaky - about 20% of the time it returns 'Boston'
-		expectedArg := `{"location": "Boston, MA"}`
-		parser := gollum.NewJSONParser[getWeatherInput](false)
+		expectedArg := []byte(`{"location": "Boston, MA"}`)
+		parser := gollum.NewJSONParserGeneric[getWeatherInput](false)
 		expectedStruct, err := parser.Parse(ctx, expectedArg)
 		assert.NoError(t, err)
-		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStruct, input)
 	})
@@ -223,8 +223,8 @@ func TestEndToEnd(t *testing.T) {
 			Count: 7,
 			Words: []string{"What", "is", "the", "weather", "like", "in", "Boston?"},
 		}
-		parser := gollum.NewJSONParser[counter](false)
-		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		parser := gollum.NewJSONParserGeneric[counter](false)
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStruct, input)
 	})
@@ -260,8 +260,8 @@ func TestEndToEnd(t *testing.T) {
 		assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
 		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "ChatCompletion")
 
-		parser := gollum.NewJSONParser[openai.ChatCompletionRequest](false)
-		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		parser := gollum.NewJSONParserGeneric[openai.ChatCompletionRequest](false)
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, input)
 
@@ -306,8 +306,8 @@ func TestEndToEnd(t *testing.T) {
 		t.Log(resp)
 		assert.Equal(t, 0, 1)
 
-		parser := gollum.NewJSONParser[blobNode](false)
-		input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+		parser := gollum.NewJSONParserGeneric[blobNode](false)
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, input)
 		assert.Equal(t, input, blobNode{
@@ -385,5 +385,18 @@ Output:  What is the population of Jason's home country?
 		t.Log(resp)
 		assert.Equal(t, 0, 1)
 
+	})
+}
+
+func BenchmarkStructToJsonSchem(b *testing.B) {
+	b.Run("basic", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			gollum.StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
+		}
+	})
+	b.Run("generic", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			gollum.StructToJsonSchemaGeneric[queryNode]("queryPlanner", "Plan a multi-step query")
+		}
 	})
 }

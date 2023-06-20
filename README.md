@@ -78,7 +78,7 @@ It is also possible to go from just the function definition to a fully formed Op
 
 We should be able to chain the call for the single input and for the ctx + single input case and return it easily. 
 
-### Recursion on arbitrary structs, no definitions
+### Recursion on arbitrary structs without explicit definitions
 
 Say you have a struct that has JSON tags defined. 
 
@@ -120,3 +120,5 @@ On the first try, this yielded the following result:
 ```
 
 That's really sick considering that _no_ effort was put into manually creating a new JSON struct, and the original struct didn't have any JSONSchema tags - just JSON serdes comments.
+
+###

@@ -7,7 +7,6 @@ import (
 
 	"github.com/stillmatic/gollum"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 )
 
 type employee struct {
@@ -47,62 +46,40 @@ var badEmployees = []employee{
 }
 
 func TestParsers(t *testing.T) {
-
 	t.Run("JSONParser", func(t *testing.T) {
-		jsonParser := gollum.NewJSONParser[company](false)
+		jsonParser := gollum.NewJSONParserGeneric[company](false)
 		input, err := json.Marshal(testCo)
 		assert.NoError(t, err)
 
-		actual, err := jsonParser.Parse(context.Background(), string(input))
+		actual, err := jsonParser.Parse(context.Background(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, testCo, actual)
 
 		// test failure
-		employeeParser := gollum.NewJSONParser[employee](true)
+		employeeParser := gollum.NewJSONParserGeneric[employee](true)
 		input2, err := json.Marshal(badEmployees)
 		assert.NoError(t, err)
-		_, err = employeeParser.Parse(context.Background(), string(input2))
+		_, err = employeeParser.Parse(context.Background(), input2)
 		assert.Error(t, err)
-	})
-
-	t.Run("YAMLParser", func(t *testing.T) {
-		// test struct
-		yamlParser := gollum.NewYamlParser[company](true)
-		input, err := yaml.Marshal(testCo)
-		assert.NoError(t, err)
-		actual, err := yamlParser.Parse(context.Background(), string(input))
-		assert.NoError(t, err)
-		assert.Equal(t, testCo, actual)
-
-		// Test bullet list
-		yamlParserBullet := gollum.NewYamlParser[bulletList](false)
-		input2 := `- bullet point 1
-- bullet point 2
-- bullet point 3`
-		expected := []string{"bullet point 1", "bullet point 2", "bullet point 3"}
-		actual2, err := yamlParserBullet.Parse(context.Background(), input2)
-		assert.NoError(t, err)
-		for i, v := range actual2 {
-			assert.Equal(t, expected[i], v)
-		}
-	})
-
-	t.Run("fail validation", func(t *testing.T) {
-		yamlParser := gollum.NewYamlParser[employee](false)
-		input, err := yaml.Marshal(badEmployees)
-		assert.NoError(t, err)
-		resp, err := yamlParser.Parse(context.Background(), string(input))
-		assert.Error(t, err)
-		_ = resp
 	})
 
 	t.Run("testbenchmark", func(t *testing.T) {
-		jsonParser := gollum.NewJSONParser[company](true)
+		jsonParser := gollum.NewJSONParserGeneric[company](true)
 		input, err := json.Marshal(testCo)
 		assert.NoError(t, err)
-		actual, err := jsonParser.Parse(context.Background(), string(input))
+		actual, err := jsonParser.Parse(context.Background(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, testCo.Name, actual.Name)
+	})
+	t.Run("test_multiple", func(t *testing.T) {
+		jsonParser := gollum.NewJSONParserMultiple(true, []interface{}{company{}, employee{}})
+		input, err := json.Marshal(testCo)
+		assert.NoError(t, err)
+		actual, err := jsonParser.Parse(context.Background(), input)
+		assert.NoError(t, err)
+		actualCompany, ok := actual.(company)
+		assert.True(t, ok)
+		assert.Equal(t, testCo.Name, actualCompany.Name)
 	})
 }
 
@@ -116,23 +93,23 @@ type location struct {
 
 func BenchmarkParser(b *testing.B) {
 	b.Run("JSONParser-NoValidate", func(b *testing.B) {
-		jsonParser := gollum.NewJSONParser[company](false)
+		jsonParser := gollum.NewJSONParserGeneric[company](false)
 		input, err := json.Marshal(testCo)
 		assert.NoError(b, err)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			actual, err := jsonParser.Parse(context.Background(), string(input))
+			actual, err := jsonParser.Parse(context.Background(), input)
 			assert.NoError(b, err)
 			assert.Equal(b, testCo, actual)
 		}
 	})
 	b.Run("JSONParser-Validate", func(b *testing.B) {
-		jsonParser := gollum.NewJSONParser[company](true)
+		jsonParser := gollum.NewJSONParserGeneric[company](true)
 		input, err := json.Marshal(testCo)
 		assert.NoError(b, err)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			actual, err := jsonParser.Parse(context.Background(), string(input))
+			actual, err := jsonParser.Parse(context.Background(), input)
 			assert.NoError(b, err)
 			assert.Equal(b, testCo, actual)
 		}

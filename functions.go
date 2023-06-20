@@ -33,3 +33,26 @@ func StructToJsonSchema(functionName string, functionDescription string, inputSt
 		Parameters:  parameters,
 	}
 }
+
+func StructToJsonSchemaGeneric[T any](functionName string, functionDescription string) FunctionInput {
+	var tArr [0]T
+	tt := reflect.TypeOf(tArr).Elem()
+	schema := jsonschema.ReflectFromType(reflect.Type(tt))
+	inputStructName := tt.Name()
+	// only get the single struct we care about
+	inputProperties, ok := schema.Definitions[inputStructName]
+	if !ok {
+		// this should not happen
+		panic("could not find input struct in schema")
+	}
+	parameters := jsonschema.Schema{
+		Type:       "object",
+		Properties: inputProperties.Properties,
+		Required:   inputProperties.Required,
+	}
+	return FunctionInput{
+		Name:        functionName,
+		Description: functionDescription,
+		Parameters:  parameters,
+	}
+}
