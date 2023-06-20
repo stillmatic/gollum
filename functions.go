@@ -7,9 +7,9 @@ import (
 )
 
 type FunctionInput struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description,omitempty"`
-	Parameters  interface{} `json:"parameters"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Parameters  any    `json:"parameters"`
 }
 
 func StructToJsonSchema(functionName string, functionDescription string, inputStruct interface{}) FunctionInput {

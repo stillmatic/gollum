@@ -3,6 +3,7 @@ module github.com/stillmatic/gollum
 go 1.20
 
 require (
+	github.com/chewxy/math32 v1.10.1
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/invopop/jsonschema v0.7.0
@@ -13,11 +14,9 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/viterin/vek v0.4.0
 	gocloud.dev v0.29.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/chewxy/math32 v1.10.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -35,6 +34,7 @@ require (
 	google.golang.org/genproto v0.0.0-20230209215440-0dfe4f8abfcc // indirect
 	google.golang.org/grpc v1.53.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/viterin/vek v0.4.0 => github.com/stillmatic/vek v0.0.0-20230602140552-8a103e6cf4d4
