@@ -2,6 +2,8 @@ module github.com/stillmatic/gollum
 
 go 1.20
 
+replace github.com/github.com/sashabaranov/go-openai => github.com/stillmatic/go-openai v0.0.0-20230620011545-174aa6920f6b
+
 require (
 	github.com/chewxy/math32 v1.10.1
 	github.com/golang/mock v1.6.0
