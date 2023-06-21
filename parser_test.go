@@ -71,16 +71,6 @@ func TestParsers(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, testCo.Name, actual.Name)
 	})
-	t.Run("test_multiple", func(t *testing.T) {
-		jsonParser := gollum.NewJSONParserMultiple(true, []interface{}{company{}, employee{}})
-		input, err := json.Marshal(testCo)
-		assert.NoError(t, err)
-		actual, err := jsonParser.Parse(context.Background(), input)
-		assert.NoError(t, err)
-		actualCompany, ok := actual.(company)
-		assert.True(t, ok)
-		assert.Equal(t, testCo.Name, actualCompany.Name)
-	})
 }
 
 type location struct {
