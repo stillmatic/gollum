@@ -71,19 +71,17 @@ func TestEndToEnd(t *testing.T) {
 		t.Skip("somewhat flaky - word counter is more reliable")
 		fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
-		chatRequest := testutil.ChatCompletionRequest{
-			ChatCompletionRequest: openai.ChatCompletionRequest{
-				Model: "gpt-3.5-turbo-0613",
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    "user",
-						Content: "Whats the temperature in Boston?",
-					},
+		chatRequest := openai.ChatCompletionRequest{
+			Model: "gpt-3.5-turbo-0613",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    "user",
+					Content: "Whats the temperature in Boston?",
 				},
-				MaxTokens:   256,
-				Temperature: 0.0,
 			},
-			Functions: []gollum.FunctionInput{fi},
+			MaxTokens:   256,
+			Temperature: 0.0,
+			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
 		}
 
 		ctx := context.Background()
@@ -108,19 +106,19 @@ func TestEndToEnd(t *testing.T) {
 
 	t.Run("counter", func(t *testing.T) {
 		fi := gollum.StructToJsonSchema("split_word", "Break sentences into words", counter{})
-		chatRequest := testutil.ChatCompletionRequest{
-			ChatCompletionRequest: openai.ChatCompletionRequest{
-				Model: "gpt-3.5-turbo-0613",
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    "user",
-						Content: "「What is the weather like in Boston?」Break down the above sentence into words",
-					},
+		chatRequest := openai.ChatCompletionRequest{
+			Model: "gpt-3.5-turbo-0613",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    "user",
+					Content: "「What is the weather like in Boston?」Break down the above sentence into words",
 				},
-				MaxTokens:   256,
-				Temperature: 0.0,
 			},
-			Functions: []gollum.FunctionInput{fi},
+			MaxTokens:   256,
+			Temperature: 0.0,
+			Functions: []openai.FunctionDefinition{
+				openai.FunctionDefinition(fi),
+			},
 		}
 		ctx := context.Background()
 		resp, err := api.SendRequest(ctx, chatRequest)
@@ -143,25 +141,23 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	t.Run("callOpenAI", func(t *testing.T) {
-		fi := gollum.StructToJsonSchema("ChatCompletion", "Call the OpenAI chat completion API", testutil.ChatCompletionRequest{})
+		fi := gollum.StructToJsonSchema("ChatCompletion", "Call the OpenAI chat completion API", openai.ChatCompletionRequest{})
 
-		chatRequest := testutil.ChatCompletionRequest{
-			ChatCompletionRequest: openai.ChatCompletionRequest{
-				Model: "gpt-3.5-turbo-0613",
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    openai.ChatMessageRoleSystem,
-						Content: "Construct a ChatCompletionRequest to answer the user's question, but using Kirby references. Do not answer the question directly using prior knowledge, you must generate a ChatCompletionRequest that will answer the question.",
-					},
-					{
-						Role:    openai.ChatMessageRoleUser,
-						Content: "What is the definition of recursion?",
-					},
+		chatRequest := openai.ChatCompletionRequest{
+			Model: "gpt-3.5-turbo-0613",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleSystem,
+					Content: "Construct a ChatCompletionRequest to answer the user's question, but using Kirby references. Do not answer the question directly using prior knowledge, you must generate a ChatCompletionRequest that will answer the question.",
 				},
-				MaxTokens:   256,
-				Temperature: 0.0,
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: "What is the definition of recursion?",
+				},
 			},
-			Functions: []gollum.FunctionInput{fi},
+			MaxTokens:   256,
+			Temperature: 0.0,
+			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
 		}
 
 		ctx := context.Background()
@@ -199,19 +195,17 @@ func TestEndToEnd(t *testing.T) {
 	└── subfolder
 		└── file4.txt`
 
-		chatRequest := testutil.ChatCompletionRequest{
-			ChatCompletionRequest: openai.ChatCompletionRequest{
-				Model: "gpt-3.5-turbo-0613",
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    "user",
-						Content: inp,
-					},
+		chatRequest := openai.ChatCompletionRequest{
+			Model: "gpt-3.5-turbo-0613",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    "user",
+					Content: inp,
 				},
-				MaxTokens:   256,
-				Temperature: 0.0,
 			},
-			Functions: []gollum.FunctionInput{fi},
+			MaxTokens:   256,
+			Temperature: 0.0,
+			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
 		}
 		ctx := context.Background()
 		resp, err := api.SendRequest(ctx, chatRequest)
@@ -268,29 +262,27 @@ func TestEndToEnd(t *testing.T) {
 		fi := gollum.StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
 		// inp := `Jason is from Canada`
 
-		chatRequest := testutil.ChatCompletionRequest{
-			ChatCompletionRequest: openai.ChatCompletionRequest{
-				Model: "gpt-3.5-turbo-0613",
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role: "system",
-						Content: `When a user asks a question, you must use the 'queryPlanner' function to answer the question. If you are at all unsure, break the question into multiple smaller questions
+		chatRequest := openai.ChatCompletionRequest{
+			Model: "gpt-3.5-turbo-0613",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role: "system",
+					Content: `When a user asks a question, you must use the 'queryPlanner' function to answer the question. If you are at all unsure, break the question into multiple smaller questions
 Example:
 Input: What is the population of Jason's home country?
 
 Output:  What is the population of Jason's home country?
 │   ├── What is Jason's home country? 
 │   ├── What is the population of that country?`,
-					},
-					{
-						Role:    "user",
-						Content: "What's on the flag of Jason's home country?",
-					},
 				},
-				MaxTokens:   256,
-				Temperature: 0.0,
+				{
+					Role:    "user",
+					Content: "What's on the flag of Jason's home country?",
+				},
 			},
-			Functions: []gollum.FunctionInput{fi},
+			MaxTokens:   256,
+			Temperature: 0.0,
+			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
 		}
 		ctx := context.Background()
 		resp, err := api.SendRequest(ctx, chatRequest)

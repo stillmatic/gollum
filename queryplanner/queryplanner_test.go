@@ -34,13 +34,13 @@ func TestQueryPlanner(t *testing.T) {
 			Content: fmt.Sprintf("Consider: %s\nGenerate the correct query plan.", question),
 		},
 	}
-	chatRequest := testutil.ChatCompletionRequest{
-		ChatCompletionRequest: openai.ChatCompletionRequest{
-			Messages:    messages,
-			Model:       "gpt-3.5-turbo-0613",
-			Temperature: 0.0,
+	chatRequest := openai.ChatCompletionRequest{
+		Messages:    messages,
+		Model:       "gpt-3.5-turbo-0613",
+		Temperature: 0.0,
+		Functions: []openai.FunctionDefinition{
+			openai.FunctionDefinition(fi),
 		},
-		Functions: []gollum.FunctionInput{fi},
 	}
 	ctx := context.Background()
 	resp, err := api.SendRequest(ctx, chatRequest)
