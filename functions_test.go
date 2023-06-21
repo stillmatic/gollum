@@ -1,31 +1,21 @@
 package gollum_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"os"
 	"testing"
 
 	"github.com/joho/godotenv"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
+	"github.com/stillmatic/gollum/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 type addInput struct {
 	A int `json:"a" json_schema:"required"`
 	B int `json:"b" json_schema:"required"`
-}
-type addOutput struct {
-	C int `json:"c"`
-}
-
-// add_ is a unnecessary testing function that adds two numbers
-func add_(input addInput) (addOutput, error) {
-	return addOutput{C: input.A + input.B}, nil
 }
 
 type getWeatherInput struct {
@@ -70,95 +60,18 @@ func TestConstructJSONSchema(t *testing.T) {
 	})
 }
 
-type chatCompletionMessage struct {
-	openai.ChatCompletionMessage
-	FunctionCall functionCall `json:"function_call,omitempty"`
-}
-
-type functionCall struct {
-	Name      string `json:"name,omitempty"`
-	Arguments string `json:"arguments,omitempty"`
-}
-
-type chatCompletionRequest struct {
-	// include the original fields
-	openai.ChatCompletionRequest
-	// Function stufff -- this is the part we care about
-	Functions    []gollum.FunctionInput `json:"functions,omitempty"`
-	FunctionCall string                 `json:"function_call,omitempty"`
-}
-
-type chatCompletionChoice struct {
-	Index   int                   `json:"index"`
-	Message chatCompletionMessage `json:"message"`
-}
-
-type chatCompletionResponse struct {
-	ID      string                 `json:"id"`
-	Object  string                 `json:"object"`
-	Created int64                  `json:"created"`
-	Model   string                 `json:"model"`
-	Choices []chatCompletionChoice `json:"choices"`
-}
-
-type TestAPI struct {
-	baseAPIURL string
-	apiKey     string
-	client     *http.Client
-}
-
-func NewTestAPI(baseAPIURL, apiKey string) *TestAPI {
-	return &TestAPI{
-		baseAPIURL: baseAPIURL,
-		apiKey:     apiKey,
-		client:     &http.Client{},
-	}
-}
-
-func (api *TestAPI) SendRequest(ctx context.Context, chatRequest chatCompletionRequest) (*chatCompletionResponse, error) {
-	b, err := json.Marshal(chatRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", api.baseAPIURL, bytes.NewReader(b))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+api.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := api.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	var chatResponse chatCompletionResponse
-	err = json.NewDecoder(resp.Body).Decode(&chatResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return &chatResponse, nil
-}
-
 func TestEndToEnd(t *testing.T) {
 	godotenv.Load()
 	baseAPIURL := "https://api.openai.com/v1/chat/completions"
 	openAIKey := os.Getenv("OPENAI_API_KEY")
 	assert.NotEmpty(t, openAIKey)
 
-	api := NewTestAPI(baseAPIURL, openAIKey)
+	api := testutil.NewTestAPI(baseAPIURL, openAIKey)
 	t.Run("weather", func(t *testing.T) {
 		t.Skip("somewhat flaky - word counter is more reliable")
 		fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
-		chatRequest := chatCompletionRequest{
+		chatRequest := testutil.ChatCompletionRequest{
 			ChatCompletionRequest: openai.ChatCompletionRequest{
 				Model: "gpt-3.5-turbo-0613",
 				Messages: []openai.ChatCompletionMessage{
@@ -195,7 +108,7 @@ func TestEndToEnd(t *testing.T) {
 
 	t.Run("counter", func(t *testing.T) {
 		fi := gollum.StructToJsonSchema("split_word", "Break sentences into words", counter{})
-		chatRequest := chatCompletionRequest{
+		chatRequest := testutil.ChatCompletionRequest{
 			ChatCompletionRequest: openai.ChatCompletionRequest{
 				Model: "gpt-3.5-turbo-0613",
 				Messages: []openai.ChatCompletionMessage{
@@ -230,9 +143,9 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	t.Run("callOpenAI", func(t *testing.T) {
-		fi := gollum.StructToJsonSchema("ChatCompletion", "Call the OpenAI chat completion API", chatCompletionRequest{})
+		fi := gollum.StructToJsonSchema("ChatCompletion", "Call the OpenAI chat completion API", testutil.ChatCompletionRequest{})
 
-		chatRequest := chatCompletionRequest{
+		chatRequest := testutil.ChatCompletionRequest{
 			ChatCompletionRequest: openai.ChatCompletionRequest{
 				Model: "gpt-3.5-turbo-0613",
 				Messages: []openai.ChatCompletionMessage{
@@ -286,7 +199,7 @@ func TestEndToEnd(t *testing.T) {
 	└── subfolder
 		└── file4.txt`
 
-		chatRequest := chatCompletionRequest{
+		chatRequest := testutil.ChatCompletionRequest{
 			ChatCompletionRequest: openai.ChatCompletionRequest{
 				Model: "gpt-3.5-turbo-0613",
 				Messages: []openai.ChatCompletionMessage{
@@ -355,7 +268,7 @@ func TestEndToEnd(t *testing.T) {
 		fi := gollum.StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
 		// inp := `Jason is from Canada`
 
-		chatRequest := chatCompletionRequest{
+		chatRequest := testutil.ChatCompletionRequest{
 			ChatCompletionRequest: openai.ChatCompletionRequest{
 				Model: "gpt-3.5-turbo-0613",
 				Messages: []openai.ChatCompletionMessage{
