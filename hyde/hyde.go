@@ -54,10 +54,10 @@ func (z *ZeroShotPrompter) BuildPrompt(ctx context.Context, prompt string) strin
 }
 
 type LLMGenerator struct {
-	Model gollum.LLM
+	Model gollum.ChatCompleter
 }
 
-func NewLLMGenerator(model gollum.LLM) *LLMGenerator {
+func NewLLMGenerator(model gollum.ChatCompleter) *LLMGenerator {
 	return &LLMGenerator{
 		Model: model,
 	}
@@ -93,10 +93,10 @@ func (l *LLMGenerator) Generate(ctx context.Context, prompt string, n int) ([]st
 }
 
 type LLMEncoder struct {
-	Model gollum.LLM
+	Model gollum.Embedder
 }
 
-func NewLLMEncoder(model gollum.LLM) *LLMEncoder {
+func NewLLMEncoder(model gollum.Embedder) *LLMEncoder {
 	return &LLMEncoder{
 		Model: model,
 	}
