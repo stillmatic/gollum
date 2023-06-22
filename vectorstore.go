@@ -32,10 +32,10 @@ type VectorStore interface {
 // MemoryVectorStore embeds documents on insert and stores them in memory
 type MemoryVectorStore struct {
 	Documents []Document
-	LLM       LLM
+	LLM       Embedder
 }
 
-func NewMemoryVectorStore(llm LLM) *MemoryVectorStore {
+func NewMemoryVectorStore(llm Embedder) *MemoryVectorStore {
 	return &MemoryVectorStore{
 		Documents: make([]Document, 0),
 		LLM:       llm,
@@ -76,7 +76,7 @@ func (m *MemoryVectorStore) Persist(ctx context.Context, bucket *blob.Bucket, pa
 	return nil
 }
 
-func NewMemoryVectorStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path string, llm LLM) (*MemoryVectorStore, error) {
+func NewMemoryVectorStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path string, llm Embedder) (*MemoryVectorStore, error) {
 	data, err := bucket.ReadAll(ctx, path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")

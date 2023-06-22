@@ -52,21 +52,16 @@ func getRandomChatCompletionResponse(n int) openai.ChatCompletionResponse {
 
 func TestHyde(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockLLM := mock_gollum.NewMockLLM(ctrl)
+	embedder := mock_gollum.NewMockEmbedder(ctrl)
+	completer := mock_gollum.NewMockChatCompleter(ctrl)
 	prompter := hyde.NewZeroShotPrompter(
 		"Roleplay as a character. Write a short biographical answer to the question.\nQ: %s\nA:",
 	)
-	generator := hyde.NewLLMGenerator(
-		mockLLM,
-	)
-	encoder := hyde.NewLLMEncoder(
-		mockLLM,
-	)
-	vs := gollum.NewMemoryVectorStore(
-		mockLLM,
-	)
+	generator := hyde.NewLLMGenerator(completer)
+	encoder := hyde.NewLLMEncoder(embedder)
+	vs := gollum.NewMemoryVectorStore(embedder)
 	for i := range make([]int, 10) {
-		mockLLM.EXPECT().CreateEmbeddings(context.Background(), gomock.Any()).Return(getRandomEmbeddingResponse(1, 1536), nil)
+		embedder.EXPECT().CreateEmbeddings(context.Background(), gomock.Any()).Return(getRandomEmbeddingResponse(1, 1536), nil)
 		vs.Insert(context.Background(), gollum.NewDocumentFromString(fmt.Sprintf("hey %d", i)))
 	}
 	assert.Equal(t, 10, len(vs.Documents))
@@ -83,7 +78,7 @@ func TestHyde(t *testing.T) {
 	t.Run("generator", func(t *testing.T) {
 		ctx := context.Background()
 		k := 10
-		mockLLM.EXPECT().CreateChatCompletion(ctx, gomock.Any()).Return(getRandomChatCompletionResponse(k), nil)
+		completer.EXPECT().CreateChatCompletion(ctx, gomock.Any()).Return(getRandomChatCompletionResponse(k), nil)
 		res, err := generator.Generate(ctx, "What is your name?", k)
 		assert.NoError(t, err)
 		assert.Equal(t, 10, len(res))
@@ -91,12 +86,12 @@ func TestHyde(t *testing.T) {
 
 	t.Run("encoder", func(t *testing.T) {
 		ctx := context.Background()
-		mockLLM.EXPECT().CreateEmbeddings(ctx, gomock.Any()).Return(getRandomEmbeddingResponse(1, 1536), nil)
+		embedder.EXPECT().CreateEmbeddings(ctx, gomock.Any()).Return(getRandomEmbeddingResponse(1, 1536), nil)
 		res, err := encoder.Encode(ctx, "What is your name?")
 		assert.NoError(t, err)
 		assert.Equal(t, 1536, len(res))
 
-		mockLLM.EXPECT().CreateEmbeddings(ctx, gomock.Any()).Return(getRandomEmbeddingResponse(2, 1536), nil)
+		embedder.EXPECT().CreateEmbeddings(ctx, gomock.Any()).Return(getRandomEmbeddingResponse(2, 1536), nil)
 		res2, err := encoder.EncodeBatch(ctx, []string{"What is your name?", "What is your quest?"})
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(res2))
@@ -105,8 +100,8 @@ func TestHyde(t *testing.T) {
 
 	t.Run("e2e", func(t *testing.T) {
 		ctx := context.Background()
-		mockLLM.EXPECT().CreateChatCompletion(ctx, gomock.Any()).Return(getRandomChatCompletionResponse(3), nil)
-		mockLLM.EXPECT().CreateEmbeddings(ctx, gomock.Any()).Return(getRandomEmbeddingResponse(4, 1536), nil)
+		completer.EXPECT().CreateChatCompletion(ctx, gomock.Any()).Return(getRandomChatCompletionResponse(3), nil)
+		embedder.EXPECT().CreateEmbeddings(ctx, gomock.Any()).Return(getRandomEmbeddingResponse(4, 1536), nil)
 		res, err := hyde.SearchEndToEnd(ctx, "What is your name?", 3)
 		assert.NoError(t, err)
 		assert.Equal(t, 3, len(res))
@@ -118,10 +113,11 @@ func BenchmarkHyde(b *testing.B) {
 		"Roleplay as a character. Write a short biographical answer to the question.\nQ: %s\nA:",
 	)
 	ctrl := gomock.NewController(b)
-	mockLLM := mock_gollum.NewMockLLM(ctrl)
-	generator := hyde.NewLLMGenerator(mockLLM)
-	encoder := hyde.NewLLMEncoder(mockLLM)
-	vs := gollum.NewMemoryVectorStore(mockLLM)
+	embedder := mock_gollum.NewMockEmbedder(ctrl)
+	completer := mock_gollum.NewMockChatCompleter(ctrl)
+	generator := hyde.NewLLMGenerator(completer)
+	encoder := hyde.NewLLMEncoder(embedder)
+	vs := gollum.NewMemoryVectorStore(embedder)
 	searcher := hyde.NewVectorSearcher(
 		vs,
 	)
@@ -130,14 +126,14 @@ func BenchmarkHyde(b *testing.B) {
 	for _, docNum := range docNums {
 		b.Run(fmt.Sprintf("docs=%v", docNum), func(b *testing.B) {
 			for _ = range make([]int, docNum) {
-				mockLLM.EXPECT().CreateEmbeddings(gomock.Any(), gomock.Any()).Return(getRandomEmbeddingResponse(1, 1536), nil)
+				embedder.EXPECT().CreateEmbeddings(gomock.Any(), gomock.Any()).Return(getRandomEmbeddingResponse(1, 1536), nil)
 				vs.Insert(context.Background(), gollum.NewDocumentFromString("hey"))
 			}
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				k := 8
-				mockLLM.EXPECT().CreateChatCompletion(context.Background(), gomock.Any()).Return(getRandomChatCompletionResponse(k), nil)
-				mockLLM.EXPECT().CreateEmbeddings(context.Background(), gomock.Any()).Return(getRandomEmbeddingResponse(k+1, 1536), nil)
+				completer.EXPECT().CreateChatCompletion(context.Background(), gomock.Any()).Return(getRandomChatCompletionResponse(k), nil)
+				embedder.EXPECT().CreateEmbeddings(context.Background(), gomock.Any()).Return(getRandomEmbeddingResponse(k+1, 1536), nil)
 				_, err := hyde.SearchEndToEnd(context.Background(), "What is your name?", k)
 				assert.NoError(b, err)
 			}
