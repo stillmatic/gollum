@@ -10,7 +10,7 @@ import (
 
 type DocStore interface {
 	Insert(context.Context, Document) error
-	Retrieve(ctx context.Context, id string, k int) ([]Document, error)
+	Retrieve(ctx context.Context, id string) (Document, error)
 }
 
 // MemoryDocStore is a simple in-memory document store.
@@ -67,5 +67,21 @@ func (m *MemoryDocStore) Persist(ctx context.Context, bucket *blob.Bucket, path 
 	if err != nil {
 		return errors.Wrap(err, "failed to write documents to disk")
 	}
+	return nil
+}
+
+// Load loads the document store from disk.
+func (m *MemoryDocStore) Load(ctx context.Context, bucket *blob.Bucket, path string) error {
+	// load documents from disk
+	data, err := bucket.ReadAll(ctx, path)
+	if err != nil {
+		return errors.Wrap(err, "failed to read documents from disk")
+	}
+	var nodes map[string]Document
+	err = json.Unmarshal(data, &nodes)
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal documents from JSON")
+	}
+	m.Documents = nodes
 	return nil
 }
