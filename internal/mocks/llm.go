@@ -12,46 +12,31 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// MockLLM is a mock of LLM interface.
-type MockLLM struct {
+// MockCompleter is a mock of Completer interface.
+type MockCompleter struct {
 	ctrl     *gomock.Controller
-	recorder *MockLLMMockRecorder
+	recorder *MockCompleterMockRecorder
 }
 
-// MockLLMMockRecorder is the mock recorder for MockLLM.
-type MockLLMMockRecorder struct {
-	mock *MockLLM
+// MockCompleterMockRecorder is the mock recorder for MockCompleter.
+type MockCompleterMockRecorder struct {
+	mock *MockCompleter
 }
 
-// NewMockLLM creates a new mock instance.
-func NewMockLLM(ctrl *gomock.Controller) *MockLLM {
-	mock := &MockLLM{ctrl: ctrl}
-	mock.recorder = &MockLLMMockRecorder{mock}
+// NewMockCompleter creates a new mock instance.
+func NewMockCompleter(ctrl *gomock.Controller) *MockCompleter {
+	mock := &MockCompleter{ctrl: ctrl}
+	mock.recorder = &MockCompleterMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockLLM) EXPECT() *MockLLMMockRecorder {
+func (m *MockCompleter) EXPECT() *MockCompleterMockRecorder {
 	return m.recorder
 }
 
-// CreateChatCompletion mocks base method.
-func (m *MockLLM) CreateChatCompletion(arg0 context.Context, arg1 openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateChatCompletion", arg0, arg1)
-	ret0, _ := ret[0].(openai.ChatCompletionResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateChatCompletion indicates an expected call of CreateChatCompletion.
-func (mr *MockLLMMockRecorder) CreateChatCompletion(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChatCompletion", reflect.TypeOf((*MockLLM)(nil).CreateChatCompletion), arg0, arg1)
-}
-
 // CreateCompletion mocks base method.
-func (m *MockLLM) CreateCompletion(arg0 context.Context, arg1 openai.CompletionRequest) (openai.CompletionResponse, error) {
+func (m *MockCompleter) CreateCompletion(arg0 context.Context, arg1 openai.CompletionRequest) (openai.CompletionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCompletion", arg0, arg1)
 	ret0, _ := ret[0].(openai.CompletionResponse)
@@ -60,13 +45,74 @@ func (m *MockLLM) CreateCompletion(arg0 context.Context, arg1 openai.CompletionR
 }
 
 // CreateCompletion indicates an expected call of CreateCompletion.
-func (mr *MockLLMMockRecorder) CreateCompletion(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockCompleterMockRecorder) CreateCompletion(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCompletion", reflect.TypeOf((*MockLLM)(nil).CreateCompletion), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCompletion", reflect.TypeOf((*MockCompleter)(nil).CreateCompletion), arg0, arg1)
+}
+
+// MockChatCompleter is a mock of ChatCompleter interface.
+type MockChatCompleter struct {
+	ctrl     *gomock.Controller
+	recorder *MockChatCompleterMockRecorder
+}
+
+// MockChatCompleterMockRecorder is the mock recorder for MockChatCompleter.
+type MockChatCompleterMockRecorder struct {
+	mock *MockChatCompleter
+}
+
+// NewMockChatCompleter creates a new mock instance.
+func NewMockChatCompleter(ctrl *gomock.Controller) *MockChatCompleter {
+	mock := &MockChatCompleter{ctrl: ctrl}
+	mock.recorder = &MockChatCompleterMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockChatCompleter) EXPECT() *MockChatCompleterMockRecorder {
+	return m.recorder
+}
+
+// CreateChatCompletion mocks base method.
+func (m *MockChatCompleter) CreateChatCompletion(arg0 context.Context, arg1 openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateChatCompletion", arg0, arg1)
+	ret0, _ := ret[0].(openai.ChatCompletionResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateChatCompletion indicates an expected call of CreateChatCompletion.
+func (mr *MockChatCompleterMockRecorder) CreateChatCompletion(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChatCompletion", reflect.TypeOf((*MockChatCompleter)(nil).CreateChatCompletion), arg0, arg1)
+}
+
+// MockEmbedder is a mock of Embedder interface.
+type MockEmbedder struct {
+	ctrl     *gomock.Controller
+	recorder *MockEmbedderMockRecorder
+}
+
+// MockEmbedderMockRecorder is the mock recorder for MockEmbedder.
+type MockEmbedderMockRecorder struct {
+	mock *MockEmbedder
+}
+
+// NewMockEmbedder creates a new mock instance.
+func NewMockEmbedder(ctrl *gomock.Controller) *MockEmbedder {
+	mock := &MockEmbedder{ctrl: ctrl}
+	mock.recorder = &MockEmbedderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockEmbedder) EXPECT() *MockEmbedderMockRecorder {
+	return m.recorder
 }
 
 // CreateEmbeddings mocks base method.
-func (m *MockLLM) CreateEmbeddings(arg0 context.Context, arg1 openai.EmbeddingRequest) (openai.EmbeddingResponse, error) {
+func (m *MockEmbedder) CreateEmbeddings(arg0 context.Context, arg1 openai.EmbeddingRequest) (openai.EmbeddingResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateEmbeddings", arg0, arg1)
 	ret0, _ := ret[0].(openai.EmbeddingResponse)
@@ -75,7 +121,7 @@ func (m *MockLLM) CreateEmbeddings(arg0 context.Context, arg1 openai.EmbeddingRe
 }
 
 // CreateEmbeddings indicates an expected call of CreateEmbeddings.
-func (mr *MockLLMMockRecorder) CreateEmbeddings(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEmbedderMockRecorder) CreateEmbeddings(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmbeddings", reflect.TypeOf((*MockLLM)(nil).CreateEmbeddings), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmbeddings", reflect.TypeOf((*MockEmbedder)(nil).CreateEmbeddings), arg0, arg1)
 }

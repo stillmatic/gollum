@@ -23,11 +23,11 @@ func getRandomEmbedding(n int) []float32 {
 }
 
 // setup with godotenv load
-func initialize(tb testing.TB) (*mock_gollum.MockLLM, *gollum.MemoryVectorStore) {
+func initialize(tb testing.TB) (*mock_gollum.MockEmbedder, *gollum.MemoryVectorStore) {
 	tb.Helper()
 
 	ctrl := gomock.NewController(tb)
-	oai := mock_gollum.NewMockLLM(ctrl)
+	oai := mock_gollum.NewMockEmbedder(ctrl)
 	ctx := context.Background()
 	bucket, err := fileblob.OpenBucket("testdata", nil)
 	assert.NoError(tb, err)
@@ -127,8 +127,19 @@ func TestMemoryVectorStore(t *testing.T) {
 	})
 }
 
+type MockEmbedder struct{}
+
+func (m MockEmbedder) CreateEmbeddings(ctx context.Context, req openai.EmbeddingRequest) (openai.EmbeddingResponse, error) {
+	resp := openai.EmbeddingResponse{
+		Data: []openai.Embedding{
+			{Embedding: getRandomEmbedding(1536)},
+		},
+	}
+	return resp, nil
+}
+
 func BenchmarkMemoryVectorStore(b *testing.B) {
-	llm := mock_gollum.NewMockLLM(gomock.NewController(b))
+	llm := mock_gollum.NewMockEmbedder(gomock.NewController(b))
 	ctx := context.Background()
 
 	nValues := []int{10, 100, 1_000, 10_000, 100_000, 1_000_000}
