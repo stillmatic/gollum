@@ -19,3 +19,7 @@ type ChatCompleter interface {
 type Embedder interface {
 	CreateEmbeddings(context.Context, openai.EmbeddingRequest) (openai.EmbeddingResponse, error)
 }
+
+type Moderator interface {
+	Moderations(context.Context, openai.ModerationRequest) (openai.ModerationResponse, error)
+}
