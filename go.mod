@@ -11,7 +11,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
-	github.com/sashabaranov/go-openai v1.11.3
+	github.com/sashabaranov/go-openai v1.12.0
 	github.com/stretchr/testify v1.8.4
 	github.com/viterin/vek v0.4.0
 	gocloud.dev v0.29.0
