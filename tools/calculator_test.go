@@ -16,7 +16,7 @@ func TestCalculator(t *testing.T) {
 		calcInput := tools.CalculatorInput{
 			Expression: "1 + 1",
 		}
-		output, err := calc.Run(ctx, &calcInput)
+		output, err := calc.Run(ctx, calcInput)
 		assert.NoError(t, err)
 		assert.Equal(t, "2", output)
 	})
@@ -32,6 +32,16 @@ func TestCalculator(t *testing.T) {
 			Environment: env,
 		}
 		output, err := calc.Run(ctx, calcInput)
+		assert.NoError(t, err)
+		assert.Equal(t, "2", output)
+	})
+	t.Run("test reader/writer", func(t *testing.T) {
+		calcInput := tools.CalculatorInput{
+			Expression: "1 + 1",
+		}
+		err := calc.Write(ctx, calcInput)
+		assert.NoError(t, err)
+		output, err := calc.Read(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, "2", output)
 	})

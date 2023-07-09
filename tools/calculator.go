@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"strconv"
+	"sync"
 
 	"github.com/antonmedv/expr"
 	"github.com/pkg/errors"
@@ -13,7 +14,11 @@ type CalculatorInput struct {
 	Environment map[string]interface{} `json:"environment,omitempty" jsonschema_description:"optional environment variables to use when evaluating the expression"`
 }
 
-type CalculatorTool struct{}
+type CalculatorTool struct {
+	result string
+	err    error
+	rwmu   sync.RWMutex
+}
 
 func (c *CalculatorTool) Name() string {
 	return "calculator"
@@ -44,4 +49,31 @@ func (c *CalculatorTool) Run(ctx context.Context, input interface{}) (interface{
 	default:
 		return "", errors.New("invalid output")
 	}
+}
+
+func (c *CalculatorTool) Write(ctx context.Context, input interface{}) error {
+	cinput, ok := input.(CalculatorInput)
+	if !ok {
+		return errors.New("invalid input")
+	}
+	defer func() {
+		c.rwmu.Lock()
+		defer c.rwmu.Unlock()
+		res, err := c.Run(ctx, cinput)
+		if err != nil {
+			c.err = err
+			return
+		}
+		c.result = res.(string)
+	}()
+	return nil
+}
+
+func (c *CalculatorTool) Read(ctx context.Context) (interface{}, error) {
+	c.rwmu.Lock()
+	defer c.rwmu.Unlock()
+	if c.err != nil {
+		return "", c.err
+	}
+	return c.result, nil
 }
