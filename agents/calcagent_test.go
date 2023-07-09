@@ -6,12 +6,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum/agents"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
 	"github.com/stillmatic/gollum/tools"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestCalcAgentMocked(t *testing.T) {

@@ -6,11 +6,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"gocloud.dev/blob/fileblob"
 )
 

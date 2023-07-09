@@ -6,12 +6,12 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
 	"github.com/stillmatic/gollum/hyde"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func getRandomEmbedding(n int) []float32 {

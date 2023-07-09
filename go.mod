@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/antonmedv/expr v1.12.5
 	github.com/chewxy/math32 v1.10.1
-	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/invopop/jsonschema v0.7.0
 	github.com/joho/godotenv v1.5.1
@@ -14,6 +13,7 @@ require (
 	github.com/sashabaranov/go-openai v1.12.0
 	github.com/stretchr/testify v1.8.4
 	github.com/viterin/vek v0.4.0
+	go.uber.org/mock v0.2.0
 	gocloud.dev v0.29.0
 )
 
