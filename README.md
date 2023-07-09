@@ -120,5 +120,3 @@ On the first try, this yielded the following result:
 ```
 
 That's really sick considering that _no_ effort was put into manually creating a new JSON struct, and the original struct didn't have any JSONSchema tags - just JSON serdes comments.
-
-###
