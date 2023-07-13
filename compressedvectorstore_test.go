@@ -59,8 +59,8 @@ func TestCompressedVectorStore(t *testing.T) {
 func BenchmarkCompressedVectorStore(b *testing.B) {
 	ctx := context.Background()
 	// Test different sizes
-	sizes := []int{10, 100, 1000}
-	// note that runtime doesn't really depnd on K -
+	sizes := []int{10, 100, 1000, 10_000}
+	// note that runtime doesn't really depend on K -
 	ks := []int{1, 5, 25, 100}
 	// benchmark inserts
 	for _, size := range sizes {

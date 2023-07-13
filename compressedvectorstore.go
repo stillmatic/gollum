@@ -5,7 +5,8 @@ import (
 	stdgzip "compress/gzip"
 	"context"
 	"io"
-	"sync"
+
+	"github.com/stillmatic/gollum/syncpool"
 	// gzip "github.com/klauspost/compress/gzip"
 )
 
@@ -20,7 +21,7 @@ type GzipCompressor struct{}
 
 // GzipCompressor uses the std gzip compressor.
 type StdGzipCompressor struct {
-	pool sync.Pool
+	pool syncpool.Pool[*stdgzip.Writer]
 }
 
 // func (g *GzipCompressor) Compress(src []byte) []byte {
@@ -39,14 +40,8 @@ type StdGzipCompressor struct {
 func (g *StdGzipCompressor) Compress(src []byte) []byte {
 	w := io.Discard
 	var b bytes.Buffer
-	pv := g.pool.Get()
-	var gz *stdgzip.Writer
-	if pv == nil {
-		gz = stdgzip.NewWriter(w)
-	} else {
-		gz = pv.(*stdgzip.Writer)
-		gz.Reset(w)
-	}
+	gz := g.pool.Get()
+	gz.Reset(w)
 
 	if _, err := gz.Write(src); err != nil {
 		panic(err)
@@ -82,6 +77,7 @@ func minMax(val1, val2 int) (int, int) {
 }
 
 func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
+	// singlethreaded approach
 	searchTermEncoded := cvs.Compressor.Compress([]byte(qb.Query))
 
 	h := Heap{}
@@ -166,7 +162,12 @@ func (cvs *CompressedVectorStore) RetrieveAll(ctx context.Context) ([]Document, 
 }
 
 func NewStdGzipVectorStore() *CompressedVectorStore {
+	w := io.Discard
 	return &CompressedVectorStore{
-		Compressor: &StdGzipCompressor{},
+		Compressor: &StdGzipCompressor{
+			pool: syncpool.New[*stdgzip.Writer](func() *stdgzip.Writer {
+				return stdgzip.NewWriter(w)
+			}),
+		},
 	}
 }
