@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	mathrand "math/rand"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -79,6 +80,35 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 				for _, doc := range docs {
 					vs.Insert(ctx, doc)
 				}
+			}
+		})
+	}
+	// Concurrent writes to a slice are ok
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("InsertConcurrent-%d", size), func(b *testing.B) {
+			// Create vector store using live compression
+			vs := gollum.NewStdGzipVectorStore()
+			docs := make([]gollum.Document, size)
+			// Generate synthetic docs
+			for i := range docs {
+				docs[i] = syntheticDoc()
+			}
+			var wg sync.WaitGroup
+			sem := make(chan struct{}, 8)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				// Insert docs
+				for _, doc := range docs {
+					wg.Add(1)
+					sem <- struct{}{}
+					go func(doc gollum.Document) {
+						defer wg.Done()
+						defer func() { <-sem }()
+						vs.Insert(ctx, doc)
+					}(doc)
+				}
+				wg.Wait()
 			}
 		})
 	}

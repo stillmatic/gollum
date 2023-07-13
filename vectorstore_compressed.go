@@ -63,6 +63,8 @@ type CompressedVectorStore struct {
 	Compressor Compressor
 }
 
+// Insert compresses the document and inserts it into the store.
+// An alternative implementation would ONLY store the compressed representation and decompress as necessary.
 func (ts *CompressedVectorStore) Insert(ctx context.Context, d Document) error {
 	encoded := ts.Compressor.Compress([]byte(d.Content))
 	ts.Data = append(ts.Data, CompressedDocument{Document: d, Encoded: encoded})
