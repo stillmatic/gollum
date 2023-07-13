@@ -2,9 +2,9 @@ package gollum
 
 import (
 	"bytes"
-	"compress/gzip"
+	stdgzip "compress/gzip"
 	"context"
-	"sort"
+	// gzip "github.com/klauspost/compress/gzip"
 )
 
 // Compressor is a single method interface that returns a compressed representation of an object.
@@ -12,11 +12,29 @@ type Compressor interface {
 	Compress(src []byte) []byte
 }
 
+// GzipCompressor uses the klauspost/compress gzip compressor.
+// We generally suggest using this optimized implementation over the stdlib.
 type GzipCompressor struct{}
 
-func (g GzipCompressor) Compress(src []byte) []byte {
+// GzipCompressor uses the std gzip compressor.
+type StdGzipCompressor struct{}
+
+// func (g GzipCompressor) Compress(src []byte) []byte {
+// 	var b bytes.Buffer
+// 	gz := gzip.NewWriter(&b)
+
+// 	if _, err := gz.Write(src); err != nil {
+// 		panic(err)
+// 	}
+// 	if err := gz.Close(); err != nil {
+// 		panic(err)
+// 	}
+// 	return b.Bytes()
+// }
+
+func (g StdGzipCompressor) Compress(src []byte) []byte {
 	var b bytes.Buffer
-	gz := gzip.NewWriter(&b)
+	gz := stdgzip.NewWriter(&b)
 
 	if _, err := gz.Write(src); err != nil {
 		panic(err)
@@ -52,35 +70,34 @@ func minMax(val1, val2 int) (int, int) {
 
 func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
 	searchTermEncoded := cvs.Compressor.Compress([]byte(qb.Query))
-	distances := make([]float32, len(cvs.Data))
 
-	for i, doc := range cvs.Data {
+	h := Heap{}
+	h.Init()
+	k := qb.K
+
+	for _, doc := range cvs.Data {
 		Cx1x2 := len(cvs.Compressor.Compress(append(searchTermEncoded, doc.Encoded...)))
 		min, max := minMax(len(searchTermEncoded), len(doc.Encoded))
 		ncd := float32(Cx1x2-min) / float32(max)
-		distances[i] = ncd
+
+		// We want a max heap, so we take the negative of ncd
+		node := nodeSimilarity{
+			Document:   doc.Document,
+			Similarity: -ncd,
+		}
+
+		h.Push(node)
+		if h.Len() > k {
+			h.Pop()
+		}
 	}
 
-	type kv struct {
-		Key   int
-		Value float32
+	docs := make([]Document, k)
+	for i := range docs {
+		docs[k-i-1] = h.Pop().Document
 	}
 
-	var ss []kv
-	for k, v := range distances {
-		ss = append(ss, kv{k, v})
-	}
-
-	sort.Slice(ss, func(i, j int) bool {
-		return ss[i].Value < ss[j].Value
-	})
-
-	topKDocs := make([]Document, qb.K)
-	for i := 0; i < qb.K; i++ {
-		topKDocs[i] = cvs.Data[ss[i].Key].Document
-	}
-
-	return topKDocs, nil
+	return docs, nil
 }
 
 func (cvs *CompressedVectorStore) RetrieveAll(ctx context.Context) ([]Document, error) {
@@ -91,8 +108,8 @@ func (cvs *CompressedVectorStore) RetrieveAll(ctx context.Context) ([]Document, 
 	return docs, nil
 }
 
-func NewGzipVectorStore() *CompressedVectorStore {
+func NewStdGzipVectorStore() *CompressedVectorStore {
 	return &CompressedVectorStore{
-		Compressor: GzipCompressor{},
+		Compressor: StdGzipCompressor{},
 	}
 }

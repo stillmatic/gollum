@@ -2,6 +2,9 @@ package gollum_test
 
 import (
 	"context"
+	"crypto/rand"
+	"fmt"
+	mathrand "math/rand"
 	"testing"
 
 	"github.com/google/uuid"
@@ -12,7 +15,7 @@ import (
 func TestCompressedVectorStore(t *testing.T) {
 	var vs gollum.VectorStore
 
-	vs = gollum.NewGzipVectorStore()
+	vs = gollum.NewStdGzipVectorStore()
 	ctx := context.Background()
 	testStrings := []string{
 		"apple",
@@ -48,4 +51,77 @@ func TestCompressedVectorStore(t *testing.T) {
 		assert.Equal(t, "football", docs[0].Content)
 		assert.Equal(t, "basketball", docs[1].Content)
 	})
+}
+
+func BenchmarkRealVectorStore(b *testing.B) {
+	ctx := context.Background()
+	// Test different sizes
+	sizes := []int{10, 100, 1000}
+	ks := []int{1, 5, 25, 100}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Insert-%d", size), func(b *testing.B) {
+			// Create vector store using live compression
+			vs := gollum.NewStdGzipVectorStore()
+			docs := make([]gollum.Document, size)
+			// Generate synthetic docs
+			for i := range docs {
+				docs[i] = syntheticDoc()
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				// Insert docs
+				for _, doc := range docs {
+					vs.Insert(ctx, doc)
+				}
+			}
+		})
+
+		for _, k := range ks {
+			if k <= size {
+				b.Run(fmt.Sprintf("Query-%d-%d", size, k), func(b *testing.B) {
+					// Create vector store and insert docs
+					vs := gollum.NewStdGzipVectorStore()
+					docs := make([]gollum.Document, size)
+					for i := range docs {
+						docs[i] = syntheticDoc()
+						vs.Insert(ctx, docs[i])
+					}
+					b.ReportAllocs()
+					b.ResetTimer()
+					// Create query
+					query := syntheticQuery(k)
+					for n := 0; n < b.N; n++ {
+						vs.Query(ctx, query)
+					}
+				})
+			}
+		}
+	}
+
+}
+
+// Helper functions
+func syntheticString() string {
+	// Random length between 8 and 64
+	randLength := mathrand.Intn(64-8+1) + 8
+
+	// Generate random bytes
+	randBytes := make([]byte, randLength)
+	rand.Read(randBytes)
+
+	// Format as hex string
+	return fmt.Sprintf("%x", randBytes)
+}
+
+func syntheticDoc() gollum.Document {
+	return gollum.NewDocumentFromString(syntheticString())
+}
+
+// syntheticQuery return query request with random embedding
+func syntheticQuery(k int) gollum.QueryRequest {
+	return gollum.QueryRequest{
+		Query: syntheticString(),
+		K:     k,
+	}
 }
