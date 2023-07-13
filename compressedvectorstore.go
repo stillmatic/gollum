@@ -4,6 +4,8 @@ import (
 	"bytes"
 	stdgzip "compress/gzip"
 	"context"
+	"sort"
+	"sync"
 	// gzip "github.com/klauspost/compress/gzip"
 )
 
@@ -68,33 +70,77 @@ func minMax(val1, val2 int) (int, int) {
 	return val2, val1
 }
 
+// func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
+// 	searchTermEncoded := cvs.Compressor.Compress([]byte(qb.Query))
+
+// 	h := Heap{}
+// 	h.Init()
+// 	k := qb.K
+
+// 	for _, doc := range cvs.Data {
+// 		Cx1x2 := len(cvs.Compressor.Compress(append(searchTermEncoded, doc.Encoded...)))
+// 		min, max := minMax(len(searchTermEncoded), len(doc.Encoded))
+// 		ncd := float32(Cx1x2-min) / float32(max)
+
+// 		// We want a max heap, so we take the negative of ncd
+// 		node := nodeSimilarity{
+// 			Document:   doc.Document,
+// 			Similarity: -ncd,
+// 		}
+
+// 		h.Push(node)
+// 		if h.Len() > k {
+// 			h.Pop()
+// 		}
+// 	}
+
+// 	docs := make([]Document, k)
+// 	for i := range docs {
+// 		docs[k-i-1] = h.Pop().Document
+// 	}
+
+// 	return docs, nil
+// }
+
 func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
+	// multithreaded approach
 	searchTermEncoded := cvs.Compressor.Compress([]byte(qb.Query))
 
-	h := Heap{}
-	h.Init()
+	distances := make([]nodeSimilarity, len(cvs.Data))
 	k := qb.K
 
-	for _, doc := range cvs.Data {
-		Cx1x2 := len(cvs.Compressor.Compress(append(searchTermEncoded, doc.Encoded...)))
-		min, max := minMax(len(searchTermEncoded), len(doc.Encoded))
-		ncd := float32(Cx1x2-min) / float32(max)
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 8)
 
-		// We want a max heap, so we take the negative of ncd
-		node := nodeSimilarity{
-			Document:   doc.Document,
-			Similarity: -ncd,
-		}
+	for i, doc := range cvs.Data {
+		wg.Add(1)
+		sem <- struct{}{}
 
-		h.Push(node)
-		if h.Len() > k {
-			h.Pop()
-		}
+		go func(i int, doc CompressedDocument) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			Cx1x2 := len(cvs.Compressor.Compress(append(searchTermEncoded, doc.Encoded...)))
+			min, max := minMax(len(searchTermEncoded), len(doc.Encoded))
+			ncd := float32(Cx1x2-min) / float32(max)
+
+			node := nodeSimilarity{
+				Document:   doc.Document,
+				Similarity: ncd,
+			}
+
+			distances[i] = node
+		}(i, doc)
 	}
+	wg.Wait()
+
+	sort.Slice(distances, func(i, j int) bool {
+		return distances[i].Similarity < distances[j].Similarity
+	})
 
 	docs := make([]Document, k)
 	for i := range docs {
-		docs[k-i-1] = h.Pop().Document
+		docs[i] = distances[i].Document
 	}
 
 	return docs, nil

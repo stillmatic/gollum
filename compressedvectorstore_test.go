@@ -13,9 +13,12 @@ import (
 )
 
 func TestCompressedVectorStore(t *testing.T) {
-	var vs gollum.VectorStore
-
-	vs = gollum.NewStdGzipVectorStore()
+	vs := gollum.NewStdGzipVectorStore()
+	t.Run("implements interface", func(t *testing.T) {
+		var vs2 gollum.VectorStore
+		vs2 = vs
+		assert.NotNil(t, vs2)
+	})
 	ctx := context.Background()
 	testStrings := []string{
 		"apple",
@@ -57,7 +60,9 @@ func BenchmarkRealVectorStore(b *testing.B) {
 	ctx := context.Background()
 	// Test different sizes
 	sizes := []int{10, 100, 1000}
+	// note that runtime doesn't really depnd on K -
 	ks := []int{1, 5, 25, 100}
+	// benchmark inserts
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Insert-%d", size), func(b *testing.B) {
 			// Create vector store using live compression
@@ -76,7 +81,9 @@ func BenchmarkRealVectorStore(b *testing.B) {
 				}
 			}
 		})
-
+	}
+	// benchmark queries
+	for _, size := range sizes {
 		for _, k := range ks {
 			if k <= size {
 				b.Run(fmt.Sprintf("Query-%d-%d", size, k), func(b *testing.B) {
