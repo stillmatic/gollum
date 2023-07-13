@@ -73,14 +73,6 @@ func TestParsers(t *testing.T) {
 	})
 }
 
-type location struct {
-	City      string  `json:"city" yaml:"city" validate:"required"`
-	State     string  `json:"state" yaml:"state" validate:"required"`
-	Country   string  `json:"country" yaml:"country" validate:"required"`
-	Latitude  float64 `json:"latitude" yaml:"latitude" validate:"required"`
-	Longitude float64 `json:"longitude" yaml:"longitude" validate:"required"`
-}
-
 func BenchmarkParser(b *testing.B) {
 	b.Run("JSONParser-NoValidate", func(b *testing.B) {
 		jsonParser := gollum.NewJSONParserGeneric[company](false)
