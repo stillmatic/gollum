@@ -56,7 +56,7 @@ func TestCompressedVectorStore(t *testing.T) {
 	})
 }
 
-func BenchmarkRealVectorStore(b *testing.B) {
+func BenchmarkCompressedVectorStore(b *testing.B) {
 	ctx := context.Background()
 	// Test different sizes
 	sizes := []int{10, 100, 1000}
