@@ -6,8 +6,8 @@ import (
 	"context"
 	"io"
 
+	gzip "github.com/klauspost/compress/gzip"
 	"github.com/stillmatic/gollum/syncpool"
-	// gzip "github.com/klauspost/compress/gzip"
 )
 
 // Compressor is a single method interface that returns a compressed representation of an object.
@@ -17,25 +17,30 @@ type Compressor interface {
 
 // GzipCompressor uses the klauspost/compress gzip compressor.
 // We generally suggest using this optimized implementation over the stdlib.
-type GzipCompressor struct{}
+type GzipCompressor struct {
+	pool syncpool.Pool[*gzip.Writer]
+}
 
-// GzipCompressor uses the std gzip compressor.
+// StdGzipCompressor uses the std gzip compressor.
 type StdGzipCompressor struct {
 	pool syncpool.Pool[*stdgzip.Writer]
 }
 
-// func (g *GzipCompressor) Compress(src []byte) []byte {
-// 	var b bytes.Buffer
-// 	gz := gzip.NewWriter(&b)
+func (g *GzipCompressor) Compress(src []byte) []byte {
+	w := io.Discard
+	var b bytes.Buffer
+	gz := g.pool.Get()
+	gz.Reset(w)
 
-// 	if _, err := gz.Write(src); err != nil {
-// 		panic(err)
-// 	}
-// 	if err := gz.Close(); err != nil {
-// 		panic(err)
-// 	}
-// 	return b.Bytes()
-// }
+	if _, err := gz.Write(src); err != nil {
+		panic(err)
+	}
+	if err := gz.Close(); err != nil {
+		panic(err)
+	}
+	g.pool.Put(gz)
+	return b.Bytes()
+}
 
 func (g *StdGzipCompressor) Compress(src []byte) []byte {
 	w := io.Discard
@@ -169,6 +174,17 @@ func NewStdGzipVectorStore() *CompressedVectorStore {
 		Compressor: &StdGzipCompressor{
 			pool: syncpool.New[*stdgzip.Writer](func() *stdgzip.Writer {
 				return stdgzip.NewWriter(w)
+			}),
+		},
+	}
+}
+
+func NewGzipVectorStore() *CompressedVectorStore {
+	w := io.Discard
+	return &CompressedVectorStore{
+		Compressor: &GzipCompressor{
+			pool: syncpool.New[*gzip.Writer](func() *gzip.Writer {
+				return gzip.NewWriter(w)
 			}),
 		},
 	}

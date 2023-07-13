@@ -52,7 +52,39 @@ BenchmarkCompressedVectorStore/Query-10000-25-10              	      20	  660134
 BenchmarkCompressedVectorStore/Query-10000-100-10             	      27	  66908579 ns/op	   25763 B/op	      10 allocs/op
 ```
 
-We expect `klauspost/compress` should improve gzip throughput by 5-10x. That should be pretty solid. Concurrent inserts are not carefully tested -- the basic intuition is that stdlib gzip is singlethreaded and we are internally writing to a slice, so doing multiple goroutines should speed up inserts, at the cost of memory overhead per routine.  
+optimized gzip - very, very fast
+
+```
+goos: darwin
+goarch: arm64
+pkg: github.com/stillmatic/gollum
+BenchmarkGzipCompressedVectorStore/Insert-10-10         	   97778	     12049 ns/op	    6312 B/op	      10 allocs/op
+BenchmarkGzipCompressedVectorStore/Insert-100-10        	    9344	    126358 ns/op	   54109 B/op	     100 allocs/op
+BenchmarkGzipCompressedVectorStore/Insert-1000-10       	     777	   1530936 ns/op	  636772 B/op	    1000 allocs/op
+BenchmarkGzipCompressedVectorStore/Insert-10000-10      	      78	  15737522 ns/op	 6328969 B/op	   10002 allocs/op
+BenchmarkGzipCompressedVectorStore/InsertConcurrent-10-10         	   60697	     20978 ns/op	   29137 B/op	      30 allocs/op
+BenchmarkGzipCompressedVectorStore/InsertConcurrent-100-10        	    6842	    152100 ns/op	  368531 B/op	     300 allocs/op
+BenchmarkGzipCompressedVectorStore/InsertConcurrent-1000-10       	     648	   1877166 ns/op	 4142200 B/op	    3000 allocs/op
+BenchmarkGzipCompressedVectorStore/InsertConcurrent-10000-10      	      84	  14419080 ns/op	42510073 B/op	   30010 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-10-1-10                  	  555477	      2142 ns/op	     486 B/op	       4 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-10-5-10                  	  483318	      2426 ns/op	    1851 B/op	       6 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-100-1-10                 	  131935	      8849 ns/op	     449 B/op	       4 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-100-5-10                 	  132410	      7921 ns/op	    1758 B/op	       6 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-100-25-10                	  115110	     10560 ns/op	    8009 B/op	       8 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-100-100-10               	   84954	     13809 ns/op	   32517 B/op	      10 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-1000-1-10                	   15910	     76752 ns/op	     483 B/op	       4 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-1000-5-10                	   15908	     75057 ns/op	    1807 B/op	       6 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-1000-25-10               	   15615	     76949 ns/op	    7490 B/op	       8 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-1000-100-10              	   14990	     78923 ns/op	   30945 B/op	      10 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-10000-1-10               	    1528	    745282 ns/op	     384 B/op	       4 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-10000-5-10               	    1578	    755715 ns/op	    1433 B/op	       6 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-10000-25-10              	    1598	    783432 ns/op	    7607 B/op	       8 allocs/op
+BenchmarkGzipCompressedVectorStore/Query-10000-100-10             	    1560	    759565 ns/op	   27609 B/op	      10 allocs/op
+PASS
+ok  	github.com/stillmatic/gollum	32.328s
+```
+
+Concurrent inserts are not carefully tested -- the basic intuition is that gzip is singlethreaded and we are internally writing to a slice, so doing multiple goroutines should speed up inserts, at the cost of memory overhead per routine.  
 
 Future improvements here also include `zstd` - in practice the pure Go implementation is quite a bit faster than gzip, but the CGo library is miles faster. I do not really want to add Cgo to this library, but would consider it in a `contrib` package or similar.
 

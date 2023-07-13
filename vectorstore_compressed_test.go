@@ -57,7 +57,7 @@ func TestCompressedVectorStore(t *testing.T) {
 	})
 }
 
-func BenchmarkCompressedVectorStore(b *testing.B) {
+func BenchmarkStdGzipCompressedVectorStore(b *testing.B) {
 	ctx := context.Background()
 	// Test different sizes
 	sizes := []int{10, 100, 1000, 10_000}
@@ -119,6 +119,87 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 				b.Run(fmt.Sprintf("Query-%d-%d", size, k), func(b *testing.B) {
 					// Create vector store and insert docs
 					vs := gollum.NewStdGzipVectorStore()
+					docs := make([]gollum.Document, size)
+					for i := range docs {
+						docs[i] = syntheticDoc()
+						vs.Insert(ctx, docs[i])
+					}
+					b.ReportAllocs()
+					b.ResetTimer()
+					// Create query
+					query := syntheticQuery(k)
+					for n := 0; n < b.N; n++ {
+						vs.Query(ctx, query)
+					}
+				})
+			}
+		}
+	}
+
+}
+
+func BenchmarkGzipCompressedVectorStore(b *testing.B) {
+	ctx := context.Background()
+	// Test different sizes
+	sizes := []int{10, 100, 1000, 10_000}
+	// note that runtime doesn't really depend on K -
+	ks := []int{1, 5, 25, 100}
+	// benchmark inserts
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Insert-%d", size), func(b *testing.B) {
+			// Create vector store using live compression
+			vs := gollum.NewGzipVectorStore()
+			docs := make([]gollum.Document, size)
+			// Generate synthetic docs
+			for i := range docs {
+				docs[i] = syntheticDoc()
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				// Insert docs
+				for _, doc := range docs {
+					vs.Insert(ctx, doc)
+				}
+			}
+		})
+	}
+	// Concurrent writes to a slice are ok
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("InsertConcurrent-%d", size), func(b *testing.B) {
+			// Create vector store using live compression
+			vs := gollum.NewGzipVectorStore()
+			docs := make([]gollum.Document, size)
+			// Generate synthetic docs
+			for i := range docs {
+				docs[i] = syntheticDoc()
+			}
+			var wg sync.WaitGroup
+			sem := make(chan struct{}, 8)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				// Insert docs
+				for _, doc := range docs {
+					wg.Add(1)
+					sem <- struct{}{}
+					go func(doc gollum.Document) {
+						defer wg.Done()
+						defer func() { <-sem }()
+						vs.Insert(ctx, doc)
+					}(doc)
+				}
+				wg.Wait()
+			}
+		})
+	}
+	// benchmark queries
+	for _, size := range sizes {
+		for _, k := range ks {
+			if k <= size {
+				b.Run(fmt.Sprintf("Query-%d-%d", size, k), func(b *testing.B) {
+					// Create vector store and insert docs
+					vs := gollum.NewGzipVectorStore()
 					docs := make([]gollum.Document, size)
 					for i := range docs {
 						docs[i] = syntheticDoc()
