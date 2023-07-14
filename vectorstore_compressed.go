@@ -112,10 +112,9 @@ func (g *ZstdCompressor) CompressIO(in io.Reader, out io.Writer) error {
 }
 
 func (g *StdGzipCompressor) Compress(src []byte) []byte {
-	w := io.Discard
 	var b bytes.Buffer
 	gz := g.pool.Get()
-	gz.Reset(w)
+	gz.Reset(&b)
 
 	if _, err := gz.Write(src); err != nil {
 		panic(err)
@@ -167,15 +166,12 @@ func minMax(val1, val2 float64) (float64, float64) {
 	return val2, val1
 }
 
+var bb bytes.Buffer
+
 func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
-	out := &bytes.Buffer{}
-	qbytes := bytes.NewReader([]byte(qb.Query))
-	err := cvs.Compressor.CompressIO(qbytes, out)
-	if err != nil {
-		return nil, err
-	}
-	searchTermEncoded := out.Bytes()
-	// searchTermEncoded := cvs.Compressor.Compress([]byte(qb.Query))
+	bb.Reset()
+	bb.WriteString(qb.Query)
+	searchTermEncoded := cvs.Compressor.Compress(bb.Bytes())
 
 	h := Heap{}
 	h.Init()
@@ -187,18 +183,12 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 	for _, doc := range cvs.Data {
 		Cx1 := float64(len(searchTermEncoded))
 		Cx2 := float64(len(doc.Encoded))
-		var bb bytes.Buffer
+		bb.Reset()
 		bb.WriteString(qb.Query)
 		bb.WriteString(" ")
 		bb.WriteString(doc.Content)
-		// x1x2 := cvs.Compressor.Compress(bb.Bytes())
-		out.Reset()
-		err = cvs.Compressor.CompressIO(&bb, out)
-		if err != nil {
-			return nil, err
-		}
-		Cx1x2 := float64(len(out.Bytes()))
-		// Cx1x2 := float64(len(x1x2))
+		x1x2 := cvs.Compressor.Compress(bb.Bytes())
+		Cx1x2 := float64(len(x1x2))
 		min, max := minMax(Cx1, Cx2)
 		ncd := (Cx1x2 - min) / (max)
 
