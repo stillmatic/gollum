@@ -101,7 +101,7 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Docum
 	for _, doc := range m.Documents {
 		score := vek32.CosineSimilarity(qb.EmbeddingFloats, doc.Embedding)
 		ns := nodeSimilarity{
-			Document:   doc,
+			Document:   &doc,
 			Similarity: score,
 		}
 		// maintain a max-heap of size k
@@ -113,7 +113,7 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Docum
 
 	result := make([]Document, k)
 	for i := 0; i < k; i++ {
-		result[k-i-1] = scores.Pop().Document
+		result[k-i-1] = *(scores.Pop().Document)
 	}
 	return result, nil
 }

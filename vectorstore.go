@@ -23,7 +23,7 @@ type VectorStore interface {
 }
 
 type nodeSimilarity struct {
-	Document   Document
+	Document   *Document
 	Similarity float32
 }
 

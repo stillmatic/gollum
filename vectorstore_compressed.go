@@ -193,7 +193,7 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 		ncd := (Cx1x2 - min) / (max)
 
 		node := nodeSimilarity{
-			Document:   doc.Document,
+			Document:   &doc.Document,
 			Similarity: float32(ncd),
 		}
 
@@ -205,7 +205,7 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 
 	docs := make([]Document, k)
 	for i := range docs {
-		docs[k-i-1] = h.Pop().Document
+		docs[k-i-1] = *(h.Pop().Document)
 	}
 
 	return docs, nil
