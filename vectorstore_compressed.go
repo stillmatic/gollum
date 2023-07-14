@@ -7,6 +7,7 @@ import (
 	"io"
 
 	gzip "github.com/klauspost/compress/gzip"
+	"github.com/klauspost/compress/zstd"
 	"github.com/stillmatic/gollum/syncpool"
 )
 
@@ -19,6 +20,11 @@ type Compressor interface {
 // We generally suggest using this optimized implementation over the stdlib.
 type GzipCompressor struct {
 	pool syncpool.Pool[*gzip.Writer]
+}
+
+// ZstdCompressor uses the klauspost/compress zstd compressor.
+type ZstdCompressor struct {
+	pool syncpool.Pool[*zstd.Encoder]
 }
 
 // StdGzipCompressor uses the std gzip compressor.
@@ -35,10 +41,26 @@ func (g *GzipCompressor) Compress(src []byte) []byte {
 	if _, err := gz.Write(src); err != nil {
 		panic(err)
 	}
-	if err := gz.Close(); err != nil {
+	if err := gz.Flush(); err != nil {
 		panic(err)
 	}
 	g.pool.Put(gz)
+	return b.Bytes()
+}
+
+func (g *ZstdCompressor) Compress(src []byte) []byte {
+	w := io.Discard
+	var b bytes.Buffer
+	zstd := g.pool.Get()
+	zstd.Reset(w)
+
+	if _, err := zstd.Write(src); err != nil {
+		panic(err)
+	}
+	if err := zstd.Close(); err != nil {
+		panic(err)
+	}
+	g.pool.Put(zstd)
 	return b.Bytes()
 }
 
@@ -185,6 +207,21 @@ func NewGzipVectorStore() *CompressedVectorStore {
 		Compressor: &GzipCompressor{
 			pool: syncpool.New[*gzip.Writer](func() *gzip.Writer {
 				return gzip.NewWriter(w)
+			}),
+		},
+	}
+}
+
+func NewZstdVectorStore() *CompressedVectorStore {
+	w := io.Discard
+	return &CompressedVectorStore{
+		Compressor: &ZstdCompressor{
+			pool: syncpool.New[*zstd.Encoder](func() *zstd.Encoder {
+				enc, err := zstd.NewWriter(w)
+				if err != nil {
+					panic(err)
+				}
+				return enc
 			}),
 		},
 	}
