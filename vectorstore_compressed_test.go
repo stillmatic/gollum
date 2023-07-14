@@ -2,6 +2,7 @@ package gollum_test
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -67,8 +68,8 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 	stores := map[string]gollum.VectorStore{
 		"DummyVectorStore": gollum.NewDummyVectorStore(),
 		// "StdGzipVectorStore": gollum.NewStdGzipVectorStore(),
-		// "ZstdVectorStore":    gollum.NewZstdVectorStore(),
-		// "GzipVectorStore":    gollum.NewGzipVectorStore(),
+		// "ZstdVectorStore": gollum.NewZstdVectorStore(),
+		// "GzipVectorStore": gollum.NewGzipVectorStore(),
 	}
 
 	for vsName, vs := range stores {
@@ -172,14 +173,46 @@ func syntheticString() string {
 	return fmt.Sprintf("%x", randBytes)
 }
 
-func syntheticDoc() gollum.Document {
-	return gollum.NewDocumentFromString(syntheticString())
-}
-
 // syntheticQuery return query request with random embedding
 func syntheticQuery(k int) gollum.QueryRequest {
 	return gollum.QueryRequest{
 		Query: syntheticString(),
 		K:     k,
 	}
+}
+
+func BenchmarkStringToBytes(b *testing.B) {
+	st := syntheticString()
+	b.Run("byteSlice", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			_ = []byte(st)
+		}
+	})
+	b.Run("byteSliceCopy", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			bts := make([]byte, len(st))
+			copy(bts, st)
+		}
+	})
+	b.Run("byteSliceCopyAppend", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			bts := make([]byte, 0)
+			bts = append(bts, st...)
+			_ = bts
+		}
+	})
+	b.Run("bytesBuffer", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			bb := bytes.NewBufferString(st)
+			_ = bb.Bytes()
+		}
+	})
+	b.Run("bytesBufferEmpty", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			var bb bytes.Buffer
+			bb.WriteString(st)
+			_ = bb.Bytes()
+		}
+	})
+
 }

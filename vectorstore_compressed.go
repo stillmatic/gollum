@@ -5,6 +5,7 @@ import (
 	stdgzip "compress/gzip"
 	"context"
 	"io"
+	"sync"
 
 	gzip "github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
@@ -14,21 +15,18 @@ import (
 // Compressor is a single method interface that returns a compressed representation of an object.
 type Compressor interface {
 	Compress(src []byte) []byte
-	CompressIO(in io.Reader, out io.Writer) error
 }
 
 // GzipCompressor uses the klauspost/compress gzip compressor.
 // We generally suggest using this optimized implementation over the stdlib.
 type GzipCompressor struct {
-	pool    syncpool.Pool[*gzip.Writer]
-	bufPool syncpool.Pool[*bytes.Buffer]
+	pool syncpool.Pool[*gzip.Writer]
 }
 
 // ZstdCompressor uses the klauspost/compress zstd compressor.
 type ZstdCompressor struct {
-	pool    syncpool.Pool[*zstd.Encoder]
-	bufPool syncpool.Pool[*bytes.Buffer]
-	enc     *zstd.Encoder
+	pool syncpool.Pool[*zstd.Encoder]
+	enc  *zstd.Encoder
 }
 
 // StdGzipCompressor uses the std gzip compressor.
@@ -36,11 +34,15 @@ type StdGzipCompressor struct {
 	pool syncpool.Pool[*stdgzip.Writer]
 }
 
-type DummyCompressor struct{}
+type DummyCompressor struct {
+	bufPool syncpool.Pool[*bytes.Buffer]
+}
+
+var b bytes.Buffer
 
 func (g *GzipCompressor) Compress(src []byte) []byte {
-	var b bytes.Buffer
 	gz := g.pool.Get()
+	b.Reset()
 	defer g.pool.Put(gz)
 
 	gz.Reset(&b)
@@ -53,32 +55,16 @@ func (g *GzipCompressor) Compress(src []byte) []byte {
 	return b.Bytes()
 }
 
-func (g *GzipCompressor) CompressIO(in io.Reader, out io.Writer) error {
-	enc := g.pool.Get()
-	defer g.pool.Put(enc)
-	var b bytes.Buffer
-	enc.Reset(&b)
-
-	if _, err := io.Copy(enc, in); err != nil {
-		return err
-	}
-	if err := enc.Flush(); err != nil {
-		return err
-	}
-	return enc.Close()
-}
-
 func (g *ZstdCompressor) Compress(src []byte) []byte {
-	return g.enc.EncodeAll(src, make([]byte, 0, len(src)))
-
-	var b bytes.Buffer
-	zstd := g.enc
+	// return g.enc.EncodeAll(src, make([]byte, 0, len(src)))
+	b.Reset()
+	enc := g.enc
 	// zstd := g.pool.Get()
-	zstd.Reset(&b)
-	if _, err := zstd.Write(src); err != nil {
+	enc.Reset(&b)
+	if _, err := enc.Write(src); err != nil {
 		panic(err)
 	}
-	if err := zstd.Flush(); err != nil {
+	if err := enc.Flush(); err != nil {
 		panic(err)
 	}
 
@@ -90,29 +76,8 @@ func (g *DummyCompressor) Compress(src []byte) []byte {
 	return src
 }
 
-func (g *DummyCompressor) CompressIO(in io.Reader, out io.Writer) error {
-	_, err := io.Copy(out, in)
-	return err
-}
-
-func (g *ZstdCompressor) CompressIO(in io.Reader, out io.Writer) error {
-	enc := g.enc
-	// enc := g.pool.Get()
-	// defer g.pool.Put(enc)
-	var b bytes.Buffer
-	enc.Reset(&b)
-
-	if _, err := io.Copy(enc, in); err != nil {
-		return err
-	}
-	if err := enc.Flush(); err != nil {
-		return err
-	}
-	return enc.Close()
-}
-
 func (g *StdGzipCompressor) Compress(src []byte) []byte {
-	var b bytes.Buffer
+	b.Reset()
 	gz := g.pool.Get()
 	gz.Reset(&b)
 
@@ -126,24 +91,10 @@ func (g *StdGzipCompressor) Compress(src []byte) []byte {
 	return b.Bytes()
 }
 
-func (g *StdGzipCompressor) CompressIO(in io.Reader, out io.Writer) error {
-	enc := g.pool.Get()
-	defer g.pool.Put(enc)
-	var b bytes.Buffer
-	enc.Reset(&b)
-
-	if _, err := io.Copy(enc, in); err != nil {
-		return err
-	}
-	if err := enc.Flush(); err != nil {
-		return err
-	}
-	return enc.Close()
-}
-
 type CompressedDocument struct {
-	Document
-	Encoded []byte
+	*Document
+	Encoded   []byte
+	Unencoded []byte
 }
 
 type CompressedVectorStore struct {
@@ -154,8 +105,13 @@ type CompressedVectorStore struct {
 // Insert compresses the document and inserts it into the store.
 // An alternative implementation would ONLY store the compressed representation and decompress as necessary.
 func (ts *CompressedVectorStore) Insert(ctx context.Context, d Document) error {
-	encoded := ts.Compressor.Compress([]byte(d.Content))
-	ts.Data = append(ts.Data, CompressedDocument{Document: d, Encoded: encoded})
+	bb := bufPool.Get().(*bytes.Buffer)
+	defer bufPool.Put(bb)
+	bb.Reset()
+	bb.WriteString(d.Content)
+	docBytes := bb.Bytes()
+	encoded := ts.Compressor.Compress(docBytes)
+	ts.Data = append(ts.Data, CompressedDocument{Document: &d, Encoded: encoded, Unencoded: docBytes})
 	return nil
 }
 
@@ -166,12 +122,23 @@ func minMax(val1, val2 float64) (float64, float64) {
 	return val2, val1
 }
 
-var bb bytes.Buffer
+var bufPool = sync.Pool{
+	New: func() any {
+		// The Pool's New function should generally only return pointer
+		// types, since a pointer can be put into the return interface
+		// value without an allocation:
+		return new(bytes.Buffer)
+	},
+}
+
+var spaceBytes = []byte(" ")
 
 func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
-	bb.Reset()
-	bb.WriteString(qb.Query)
-	searchTermEncoded := cvs.Compressor.Compress(bb.Bytes())
+	bb := bufPool.Get().(*bytes.Buffer)
+	defer bufPool.Put(bb)
+	queryBytes := make([]byte, len(qb.Query))
+	copy(queryBytes, qb.Query)
+	searchTermEncoded := cvs.Compressor.Compress(queryBytes)
 
 	h := Heap{}
 	h.Init()
@@ -184,16 +151,16 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 		Cx1 := float64(len(searchTermEncoded))
 		Cx2 := float64(len(doc.Encoded))
 		bb.Reset()
-		bb.WriteString(qb.Query)
-		bb.WriteString(" ")
-		bb.WriteString(doc.Content)
+		bb.Write(queryBytes)
+		bb.Write(spaceBytes)
+		bb.Write(doc.Unencoded)
 		x1x2 := cvs.Compressor.Compress(bb.Bytes())
 		Cx1x2 := float64(len(x1x2))
 		min, max := minMax(Cx1, Cx2)
 		ncd := (Cx1x2 - min) / (max)
 
 		node := nodeSimilarity{
-			Document:   &doc.Document,
+			Document:   doc.Document,
 			Similarity: float32(ncd),
 		}
 
@@ -211,54 +178,10 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 	return docs, nil
 }
 
-// func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
-// 	// multithreaded approach
-// 	searchTermEncoded := cvs.Compressor.Compress([]byte(qb.Query))
-
-// 	distances := make([]nodeSimilarity, len(cvs.Data))
-// 	k := qb.K
-
-// 	var wg sync.WaitGroup
-// 	sem := make(chan struct{}, 8)
-
-// 	for i, doc := range cvs.Data {
-// 		wg.Add(1)
-// 		sem <- struct{}{}
-
-// 		go func(i int, doc CompressedDocument) {
-// 			defer wg.Done()
-// 			defer func() { <-sem }()
-
-// 			Cx1x2 := len(cvs.Compressor.Compress(append(searchTermEncoded, doc.Encoded...)))
-// 			min, max := minMax(len(searchTermEncoded), len(doc.Encoded))
-// 			ncd := float32(Cx1x2-min) / float32(max)
-
-// 			node := nodeSimilarity{
-// 				Document:   doc.Document,
-// 				Similarity: ncd,
-// 			}
-
-// 			distances[i] = node
-// 		}(i, doc)
-// 	}
-// 	wg.Wait()
-
-// 	sort.Slice(distances, func(i, j int) bool {
-// 		return distances[i].Similarity < distances[j].Similarity
-// 	})
-
-// 	docs := make([]Document, k)
-// 	for i := range docs {
-// 		docs[i] = distances[i].Document
-// 	}
-
-// 	return docs, nil
-// }
-
 func (cvs *CompressedVectorStore) RetrieveAll(ctx context.Context) ([]Document, error) {
 	docs := make([]Document, len(cvs.Data))
 	for i, doc := range cvs.Data {
-		docs[i] = doc.Document
+		docs[i] = *doc.Document
 	}
 	return docs, nil
 }
