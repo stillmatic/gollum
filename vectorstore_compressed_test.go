@@ -65,9 +65,10 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 	ks := []int{1, 10, 100}
 	// benchmark inserts
 	stores := map[string]gollum.VectorStore{
-		"StdGzipVectorStore": gollum.NewStdGzipVectorStore(),
-		"ZstdVectorStore":    gollum.NewZstdVectorStore(),
-		"GzipVectorStore":    gollum.NewGzipVectorStore(),
+		"DummyVectorStore": gollum.NewDummyVectorStore(),
+		// "StdGzipVectorStore": gollum.NewStdGzipVectorStore(),
+		// "ZstdVectorStore":    gollum.NewZstdVectorStore(),
+		// "GzipVectorStore":    gollum.NewGzipVectorStore(),
 	}
 
 	for vsName, vs := range stores {
