@@ -95,8 +95,8 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*Docu
 		qb.EmbeddingFloats = embedding.Data[0].Embedding
 	}
 	scores := Heap{}
-	scores.Init()
 	k := qb.K
+	scores.Init(k)
 
 	for _, doc := range m.Documents {
 		score := vek32.CosineSimilarity(qb.EmbeddingFloats, doc.Embedding)

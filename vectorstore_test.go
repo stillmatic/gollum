@@ -187,12 +187,12 @@ func BenchmarkMemoryVectorStore(b *testing.B) {
 
 func BenchmarkHeap(b *testing.B) {
 	// Create a sample Heap.
-	var h gollum.Heap
-	h.Init()
 
 	ks := []int{1, 10, 100}
 
 	for _, k := range ks {
+		var h gollum.Heap
+		h.Init(k)
 		b.Run(fmt.Sprintf("BenchmarkHeapPush-k=%v", k), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				doc := &gollum.Document{}

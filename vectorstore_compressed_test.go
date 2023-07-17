@@ -9,7 +9,6 @@ import (
 	mathrand "math/rand"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stillmatic/gollum"
@@ -71,7 +70,7 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 		"DummyVectorStore": gollum.NewDummyVectorStore(),
 		// "StdGzipVectorStore": gollum.NewStdGzipVectorStore(),
 		// "ZstdVectorStore": gollum.NewZstdVectorStore(),
-		// "GzipVectorStore": gollum.NewGzipVectorStore(),
+		"GzipVectorStore": gollum.NewGzipVectorStore(),
 	}
 
 	for vsName, vs := range stores {
@@ -137,18 +136,12 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 				if k <= size {
 					b.Run(fmt.Sprintf("%s-Query-%d-%d", vsName, size, k), func(b *testing.B) {
 						// Create vector store and insert docs
-						randSource := mathrand.NewSource(time.Now().UnixNano())
-						mathrand := mathrand.New(randSource)
-						// Seed random number generator
-						mathrand.Seed(time.Now().UnixNano())
-						// Seed random number generator
-						mathrand.Seed(time.Now().UnixNano())
-
 						for i := 0; i < size; i++ {
-							randIndex := mathrand.Intn(len(lines))
-							vs.Insert(ctx, gollum.NewDocumentFromString(lines[randIndex]))
+							vs.Insert(ctx, gollum.NewDocumentFromString(lines[i]))
 						}
-						query := syntheticQuery(k)
+						query := gollum.QueryRequest{
+							Query: lines[size+1],
+						}
 						b.ReportAllocs()
 						b.ResetTimer()
 						// Create query
@@ -335,4 +328,22 @@ func BenchmarkConcatenateStrings(b *testing.B) {
 		}
 	})
 
+}
+
+func BenchmarkCompress(b *testing.B) {
+	compressors := map[string]gollum.Compressor{
+		"DummyCompressor":   gollum.NewDummyVectorStore().Compressor,
+		"StdGzipCompressor": gollum.NewStdGzipVectorStore().Compressor,
+		"ZstdCompressor":    gollum.NewZstdVectorStore().Compressor,
+		"GzipCompressor":    gollum.NewGzipVectorStore().Compressor,
+	}
+	str := syntheticString()
+	b.ResetTimer()
+	for name, compressor := range compressors {
+		b.Run(name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				_ = compressor.Compress([]byte(str))
+			}
+		})
+	}
 }

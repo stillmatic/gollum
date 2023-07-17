@@ -34,10 +34,8 @@ type NodeSimilarity struct {
 // That being said... let's revisit in the future :)
 type Heap []NodeSimilarity
 
-func (h Heap) Init() {
-	for i := (len(h) - 1) / 2; i >= 0; i-- {
-		h.down(i)
-	}
+func (h *Heap) Init(k int) {
+	*h = make(Heap, 0, k)
 }
 
 func (h Heap) down(u int) {
@@ -73,6 +71,14 @@ func (h *Heap) Pop() NodeSimilarity {
 	*h = (*h)[:n-1]
 	h.down(0)
 	return x
+}
+
+func (h Heap) Less(i, j int) bool {
+	return h[i].Similarity < h[j].Similarity
+}
+
+func (h Heap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
 }
 
 func (h *Heap) Len() int {

@@ -20,35 +20,29 @@ type Compressor interface {
 // GzipCompressor uses the klauspost/compress gzip compressor.
 // We generally suggest using this optimized implementation over the stdlib.
 type GzipCompressor struct {
-	pool    syncpool.Pool[*gzip.Writer]
-	bufPool syncpool.Pool[*bytes.Buffer]
+	pool syncpool.Pool[*gzip.Writer]
 }
 
 // ZstdCompressor uses the klauspost/compress zstd compressor.
 type ZstdCompressor struct {
-	pool    syncpool.Pool[*zstd.Encoder]
-	bufPool syncpool.Pool[*bytes.Buffer]
-	enc     *zstd.Encoder
+	pool syncpool.Pool[*zstd.Encoder]
+	enc  *zstd.Encoder
 }
 
 // StdGzipCompressor uses the std gzip compressor.
 type StdGzipCompressor struct {
-	pool    syncpool.Pool[*stdgzip.Writer]
-	bufPool syncpool.Pool[*bytes.Buffer]
+	pool syncpool.Pool[*stdgzip.Writer]
 }
 
 type DummyCompressor struct {
-	bufPool syncpool.Pool[*bytes.Buffer]
 }
 
 func (g *GzipCompressor) Compress(src []byte) []byte {
 	gz := g.pool.Get()
-	b := g.bufPool.Get()
-	b.Reset()
+	var b bytes.Buffer
 	defer g.pool.Put(gz)
-	defer g.bufPool.Put(b)
 
-	gz.Reset(b)
+	gz.Reset(&b)
 	if _, err := gz.Write(src); err != nil {
 		panic(err)
 	}
@@ -60,12 +54,11 @@ func (g *GzipCompressor) Compress(src []byte) []byte {
 
 func (g *ZstdCompressor) Compress(src []byte) []byte {
 	// return g.enc.EncodeAll(src, make([]byte, 0, len(src)))
-	b := g.bufPool.Get()
-	defer g.bufPool.Put(b)
+	var b bytes.Buffer
 	b.Reset()
 	enc := g.enc
 	// zstd := g.pool.Get()
-	enc.Reset(b)
+	enc.Reset(&b)
 	if _, err := enc.Write(src); err != nil {
 		panic(err)
 	}
@@ -82,12 +75,10 @@ func (g *DummyCompressor) Compress(src []byte) []byte {
 }
 
 func (g *StdGzipCompressor) Compress(src []byte) []byte {
-	b := g.bufPool.Get()
-	defer g.bufPool.Put(b)
-	b.Reset()
+	var b bytes.Buffer
 	gz := g.pool.Get()
 	defer g.pool.Put(gz)
-	gz.Reset(b)
+	gz.Reset(&b)
 
 	if _, err := gz.Write(src); err != nil {
 		panic(err)
@@ -135,10 +126,6 @@ var bufPool = sync.Pool{
 	},
 }
 
-var nodePool = syncpool.New[NodeSimilarity](func() NodeSimilarity {
-	return NodeSimilarity{}
-})
-
 var spaceBytes = []byte(" ")
 
 func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*Document, error) {
@@ -149,12 +136,12 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 	copy(queryBytes, qb.Query)
 	searchTermEncoded := cvs.Compressor.Compress(queryBytes)
 
-	h := Heap{}
-	h.Init()
 	k := qb.K
 	if k > len(cvs.Data) {
 		k = len(cvs.Data)
 	}
+	h := make(Heap, 0, k+1)
+	h.Init(k + 1)
 
 	for _, doc := range cvs.Data {
 		Cx1 := float64(len(searchTermEncoded))
@@ -172,23 +159,18 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 			Document:   doc.Document,
 			Similarity: float32(ncd),
 		}
-		// node := nodePool.Get()
-		// node.Document = doc.Document
-		// node.Similarity = float32(ncd)
 
 		h.Push(node)
 		if h.Len() > k {
 			h.Pop()
 		}
-		// nodePool.Put(node)
 		bb.Reset()
 	}
 
-	var docs []*Document
-	// docs := make([]*Document, k)
-	// for i := range docs {
-	// 	docs[k-i-1] = h.Pop().Document
-	// }
+	docs := make([]*Document, k)
+	for i := range docs {
+		docs[k-i-1] = h.Pop().Document
+	}
 
 	return docs, nil
 }
@@ -245,10 +227,6 @@ func NewZstdVectorStore() *CompressedVectorStore {
 
 func NewDummyVectorStore() *CompressedVectorStore {
 	return &CompressedVectorStore{
-		Compressor: &DummyCompressor{
-			bufPool: syncpool.New[*bytes.Buffer](func() *bytes.Buffer {
-				return new(bytes.Buffer)
-			}),
-		},
+		Compressor: &DummyCompressor{},
 	}
 }
