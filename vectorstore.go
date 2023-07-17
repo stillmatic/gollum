@@ -18,11 +18,11 @@ type QueryRequest struct {
 
 type VectorStore interface {
 	Insert(context.Context, Document) error
-	Query(ctx context.Context, qb QueryRequest) ([]Document, error)
+	Query(ctx context.Context, qb QueryRequest) ([]*Document, error)
 	RetrieveAll(ctx context.Context) ([]Document, error)
 }
 
-type nodeSimilarity struct {
+type NodeSimilarity struct {
 	Document   *Document
 	Similarity float32
 }
@@ -32,7 +32,7 @@ type nodeSimilarity struct {
 // In benchmarking, we see that allocations are limited by scale according to k --
 // since K is known, we should be able to allocate a fixed-size arena and use that.
 // That being said... let's revisit in the future :)
-type Heap []nodeSimilarity
+type Heap []NodeSimilarity
 
 func (h Heap) Init() {
 	for i := (len(h) - 1) / 2; i >= 0; i-- {
@@ -61,12 +61,12 @@ func (h Heap) up(u int) {
 	}
 }
 
-func (h *Heap) Push(e nodeSimilarity) {
+func (h *Heap) Push(e NodeSimilarity) {
 	*h = append(*h, e)
 	h.up(len(*h) - 1)
 }
 
-func (h *Heap) Pop() nodeSimilarity {
+func (h *Heap) Pop() NodeSimilarity {
 	x := (*h)[0]
 	n := len(*h)
 	(*h)[0], (*h)[n-1] = (*h)[n-1], (*h)[0]

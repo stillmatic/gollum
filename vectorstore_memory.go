@@ -74,7 +74,7 @@ func NewMemoryVectorStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path
 	}, nil
 }
 
-func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Document, error) {
+func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*Document, error) {
 	if len(m.Documents) == 0 {
 		return nil, errors.New("no documents in store")
 	}
@@ -100,7 +100,7 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Docum
 
 	for _, doc := range m.Documents {
 		score := vek32.CosineSimilarity(qb.EmbeddingFloats, doc.Embedding)
-		ns := nodeSimilarity{
+		ns := NodeSimilarity{
 			Document:   &doc,
 			Similarity: score,
 		}
@@ -111,9 +111,10 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]Docum
 		}
 	}
 
-	result := make([]Document, k)
+	result := make([]*Document, k)
 	for i := 0; i < k; i++ {
-		result[k-i-1] = *(scores.Pop().Document)
+		doc := scores.Pop().Document
+		result[k-i-1] = doc
 	}
 	return result, nil
 }

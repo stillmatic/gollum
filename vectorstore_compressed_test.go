@@ -61,9 +61,11 @@ func TestCompressedVectorStore(t *testing.T) {
 func BenchmarkCompressedVectorStore(b *testing.B) {
 	ctx := context.Background()
 	// Test different sizes
-	sizes := []int{10, 100, 1000, 10_000, 100_000}
+	// sizes := []int{10, 100, 1000, 10_000, 100_000}
+	sizes := []int{100}
+	ks := []int{10}
 	// note that runtime doesn't really depend on K -
-	ks := []int{1, 10, 100}
+	// ks := []int{1, 10, 100}
 	// benchmark inserts
 	stores := map[string]gollum.VectorStore{
 		"DummyVectorStore": gollum.NewDummyVectorStore(),
@@ -183,6 +185,7 @@ func syntheticQuery(k int) gollum.QueryRequest {
 
 func BenchmarkStringToBytes(b *testing.B) {
 	st := syntheticString()
+	b.ResetTimer()
 	b.Run("byteSlice", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
 			_ = []byte(st)
@@ -211,6 +214,123 @@ func BenchmarkStringToBytes(b *testing.B) {
 		for n := 0; n < b.N; n++ {
 			var bb bytes.Buffer
 			bb.WriteString(st)
+			_ = bb.Bytes()
+		}
+	})
+}
+
+func dummyCompress(src []byte) []byte {
+	return src
+}
+
+func minMax(val1, val2 float64) (float64, float64) {
+	if val1 < val2 {
+		return val1, val2
+	}
+	return val2, val1
+}
+
+func BenchmarkE2E(b *testing.B) {
+	f, err := os.Open("testdata/enwik8")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	lines := make([]string, 0)
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	// st1 := syntheticString()
+	// st2 := syntheticString()
+	st1 := lines[1]
+	st2 := lines[2]
+	b.ResetTimer()
+	b.Run("minMax", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			Cx1 := float64(len(st1))
+			Cx2 := float64(len(st2))
+			min, max := minMax(Cx1, Cx2)
+			_ = min
+			_ = max
+		}
+	})
+	var bb bytes.Buffer
+	b.Run("resetBytesBufferBytes", func(b *testing.B) {
+		st1b := []byte(st1)
+		st2b := []byte(st2)
+		spb := []byte(" ")
+		for n := 0; n < b.N; n++ {
+			Cx1 := float64(len(st1b))
+			Cx2 := float64(len(st2b))
+			bb.Reset()
+			bb.Write(st1b)
+			bb.Write(spb)
+			bb.Write(st2b)
+			b_ := bb.Bytes()
+			x1x2 := dummyCompress(b_)
+			Cx1x2 := float64(len(x1x2))
+			min, max := minMax(Cx1, Cx2)
+			ncd := (Cx1x2 - min) / (max)
+			_ = ncd
+		}
+	})
+}
+
+func BenchmarkConcatenateStrings(b *testing.B) {
+	f, err := os.Open("testdata/enwik8")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	lines := make([]string, 0)
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	// st1 := syntheticString()
+	// st2 := syntheticString()
+	st1 := lines[1]
+	st2 := lines[2]
+	b.ResetTimer()
+	b.Run("minMax", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			Cx1 := float64(len(st1))
+			Cx2 := float64(len(st2))
+			min, max := minMax(Cx1, Cx2)
+			_ = min
+			_ = max
+		}
+	})
+	b.Run("concatenate", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			_ = []byte(st1 + " " + st2)
+		}
+	})
+	b.Run("bytesBuffer", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			bb := bytes.NewBufferString(st1)
+			bb.WriteString(" ")
+			bb.WriteString(st2)
+			_ = bb.Bytes()
+		}
+	})
+	b.Run("bytesBufferEmpty", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			var bb bytes.Buffer
+			bb.WriteString(st1)
+			bb.WriteString(" ")
+			bb.WriteString(st2)
+			_ = bb.Bytes()
+		}
+	})
+	var bb bytes.Buffer
+	b.Run("resetBytesBuffer", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			bb.Reset()
+			bb.WriteString(st1)
+			bb.WriteString(" ")
+			bb.WriteString(st2)
 			_ = bb.Bytes()
 		}
 	})
