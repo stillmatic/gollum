@@ -1752,6 +1752,8 @@ github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1
 github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
 github.com/viterin/partial v1.0.0 h1:e6z0cWJ+SddpXHoLU4ikIDrsI/ZE+p+hqMsB++8IfwE=
 github.com/viterin/partial v1.0.0/go.mod h1:K9y+kVePpmfZN510YNHoUs+6scZ2K7BLojfI8aW2nw0=
+github.com/viterin/vek v0.4.1 h1:zGBUuGYiWiUFbT9GdLC0D0A3OQK97tUE8jrI4nrln2s=
+github.com/viterin/vek v0.4.1/go.mod h1:hVXEX7pnI4acHRhtFhmuBapUxhQ3TetMEp68jjxExBs=
 github.com/vultr/govultr/v2 v2.17.2/go.mod h1:ZFOKGWmgjytfyjeyAdhQlSWwTjh2ig+X49cAp50dzXI=
 github.com/willf/bitset v1.1.11-0.20200630133818-d5bec3311243/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=
 github.com/willf/bitset v1.1.11/go.mod h1:83CECat5yLh5zVOf4P1ErAgKA5UDvKtgyUABdr3+MjI=
