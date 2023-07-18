@@ -28,7 +28,7 @@ func TestDummyDispatcher(t *testing.T) {
 func TestOpenAIDispatcher(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	completer := mock_gollum.NewMockChatCompleter(ctrl)
-	d := gollum.NewOpenAIDispatcher[testInput]("Random Conversation", "Given a topic, return random words", completer)
+	d := gollum.NewOpenAIDispatcher[testInput]("Random Conversation", "Given a topic, return random words", completer, nil)
 
 	ctx := context.Background()
 	queryStr := "Tell me about dinosaurs"
