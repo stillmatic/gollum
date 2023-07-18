@@ -24,7 +24,7 @@ type Encoder interface {
 }
 
 type Searcher interface {
-	Search(context.Context, []float32, int) ([]gollum.Document, error)
+	Search(context.Context, []float32, int) ([]*gollum.Document, error)
 }
 
 type Hyde struct {
@@ -142,7 +142,7 @@ func NewVectorSearcher(vs gollum.VectorStore) *VectorSearcher {
 	}
 }
 
-func (v *VectorSearcher) Search(ctx context.Context, query []float32, n int) ([]gollum.Document, error) {
+func (v *VectorSearcher) Search(ctx context.Context, query []float32, n int) ([]*gollum.Document, error) {
 	qb := gollum.QueryRequest{
 		EmbeddingFloats: query,
 		K:               n,
@@ -189,11 +189,11 @@ func (h *Hyde) Encode(ctx context.Context, query string, docs []string) ([]float
 	return avgEmbedding, nil
 }
 
-func (h *Hyde) Search(ctx context.Context, hydeVector []float32, k int) ([]gollum.Document, error) {
+func (h *Hyde) Search(ctx context.Context, hydeVector []float32, k int) ([]*gollum.Document, error) {
 	return h.searcher.Search(ctx, hydeVector, k)
 }
 
-func (h *Hyde) SearchEndToEnd(ctx context.Context, query string, k int) ([]gollum.Document, error) {
+func (h *Hyde) SearchEndToEnd(ctx context.Context, query string, k int) ([]*gollum.Document, error) {
 	// generate n hypothesis documents
 	docs, err := h.Generate(ctx, query, k)
 	if err != nil {
@@ -202,7 +202,7 @@ func (h *Hyde) SearchEndToEnd(ctx context.Context, query string, k int) ([]gollu
 	// encode query and hypothesis documents
 	hydeVector, err := h.Encode(ctx, query, docs)
 	if err != nil {
-		return make([]gollum.Document, 0), errors.Wrap(err, "error encoding hypothetical documents")
+		return make([]*gollum.Document, 0), errors.Wrap(err, "error encoding hypothetical documents")
 	}
 	// search for the most similar documents
 	return h.Search(ctx, hydeVector, k)
