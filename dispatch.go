@@ -2,12 +2,19 @@ package gollum
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"text/template"
 
 	"github.com/sashabaranov/go-openai"
 )
 
 type Dispatcher[T any] interface {
-	Prompt(ctx context.Context, prompt string) (interface{}, error)
+	// Prompt generates an object of type T from the given prompt.
+	Prompt(ctx context.Context, prompt string) (T, error)
+	// PromptTemplate generates an object of type T from a given template.
+	// The prompt is then a template string that is rendered with the given values.
+	PromptTemplate(ctx context.Context, template template.Template, values interface{}) (T, error)
 }
 
 type DummyDispatcher[T any] struct{}
@@ -18,6 +25,16 @@ func NewDummyDispatcher[T any]() *DummyDispatcher[T] {
 
 func (d *DummyDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, error) {
 	var t T
+	return t, nil
+}
+
+func (d *DummyDispatcher[T]) PromptTemplate(ctx context.Context, template template.Template, values interface{}) (T, error) {
+	var t T
+	var sb strings.Builder
+	err := template.Execute(&sb, values)
+	if err != nil {
+		return t, fmt.Errorf("error executing template: %w", err)
+	}
 	return t, nil
 }
 
@@ -84,4 +101,16 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 	}
 
 	return output, nil
+}
+
+// PromptTemplate generates an object of type T from a given template.
+// This is mostly a convenience wrapper around Prompt.
+func (d *OpenAIDispatcher[T]) PromptTemplate(ctx context.Context, template template.Template, values interface{}) (T, error) {
+	var t T
+	var sb strings.Builder
+	err := template.Execute(&sb, values)
+	if err != nil {
+		return t, fmt.Errorf("error executing template: %w", err)
+	}
+	return d.Prompt(ctx, sb.String())
 }
