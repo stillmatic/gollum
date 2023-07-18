@@ -14,7 +14,7 @@ type Dispatcher[T any] interface {
 	Prompt(ctx context.Context, prompt string) (T, error)
 	// PromptTemplate generates an object of type T from a given template.
 	// The prompt is then a template string that is rendered with the given values.
-	PromptTemplate(ctx context.Context, template template.Template, values interface{}) (T, error)
+	PromptTemplate(ctx context.Context, template *template.Template, values interface{}) (T, error)
 }
 
 type DummyDispatcher[T any] struct{}
@@ -28,7 +28,7 @@ func (d *DummyDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, erro
 	return t, nil
 }
 
-func (d *DummyDispatcher[T]) PromptTemplate(ctx context.Context, template template.Template, values interface{}) (T, error) {
+func (d *DummyDispatcher[T]) PromptTemplate(ctx context.Context, template *template.Template, values interface{}) (T, error) {
 	var t T
 	var sb strings.Builder
 	err := template.Execute(&sb, values)
@@ -53,6 +53,8 @@ type OpenAIDispatcher[T any] struct {
 }
 
 func NewOpenAIDispatcher[T any](name, description string, completer ChatCompleter, cfg *OpenAIDispatcherConfig) *OpenAIDispatcher[T] {
+	// note: name must not have spaces - valid json
+	// we won't check here but the openai client will throw an error
 	var t T
 	fi := StructToJsonSchema(name, description, t)
 	parser := NewJSONParserGeneric[T](true)
@@ -67,17 +69,20 @@ func NewOpenAIDispatcher[T any](name, description string, completer ChatComplete
 func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, error) {
 	var output T
 	model := openai.GPT3Dot5Turbo0613
-	if d.Model != nil {
-		model = *d.Model
-	}
 	temperature := float32(0.0)
-	if d.Temperature != nil {
-		temperature = *d.Temperature
-	}
 	maxTokens := 512
-	if d.MaxTokens != nil {
-		maxTokens = *d.MaxTokens
+	if d.OpenAIDispatcherConfig != nil {
+		if d.Model != nil {
+			model = *d.Model
+		}
+		if d.Temperature != nil {
+			temperature = *d.Temperature
+		}
+		if d.MaxTokens != nil {
+			maxTokens = *d.MaxTokens
+		}
 	}
+
 	resp, err := d.completer.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		// TODO: configure this
 		Model: model,
@@ -105,7 +110,7 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 
 // PromptTemplate generates an object of type T from a given template.
 // This is mostly a convenience wrapper around Prompt.
-func (d *OpenAIDispatcher[T]) PromptTemplate(ctx context.Context, template template.Template, values interface{}) (T, error) {
+func (d *OpenAIDispatcher[T]) PromptTemplate(ctx context.Context, template *template.Template, values interface{}) (T, error) {
 	var t T
 	var sb strings.Builder
 	err := template.Execute(&sb, values)
