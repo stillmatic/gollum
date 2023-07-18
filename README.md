@@ -4,7 +4,9 @@ Production-grade LLM tooling. At least, in theory -- stuff changes fast so don't
 
 ## Features
 
-- Parses arbitrary Go structs into JSONSchema for OpenAI - and validates when unmarshaling back to your structs
+- Automated function dispatch
+    - Parses arbitrary Go structs into JSONSchema for OpenAI - and validates when unmarshaling back to your structs
+    - Simplified API to generate results from a single prompt or template
 - Highly performant vector store solution with exact search 
     - SIMD acceleration for 10x better perf than naive approach, constant memory usage
     - Drop-in integration with OpenAI and other embedding providers
@@ -13,6 +15,29 @@ Production-grade LLM tooling. At least, in theory -- stuff changes fast so don't
 - MIT License
 
 # Examples
+
+## Dispatch
+
+Function dispatch is a highly simplified and easy way to generate filled structs via an LLM. 
+
+```go
+type dinnerParty struct {
+	Topic       string   `json:"topic" jsonschema:"required" jsonschema_description:"The topic of the conversation"`
+	RandomWords []string `json:"random_words" jsonschema:"required" jsonschema_description:"Random words to prime the conversation"`
+}
+completer := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+d := gollum.NewOpenAIDispatcher[dinnerParty]("dinner_party", "Given a topic, return random words", completer, nil)
+output, _ := d.Prompt(context.Background(), "Talk to me about dinosaurs")
+```
+
+The result should be a filled `dinnerParty`` struct.
+
+```go
+expected := dinnerParty{
+		Topic:       "dinosaurs",
+		RandomWords: []string{"dinosaur", "fossil", "extinct"},
+	}
+```
 
 ## Parsing
 

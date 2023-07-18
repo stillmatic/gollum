@@ -45,6 +45,7 @@ type OpenAIDispatcherConfig struct {
 }
 
 // OpenAIDispatcher dispatches to any OpenAI compatible model.
+// For any type T and prompt, it will generate and parse the response into T.
 type OpenAIDispatcher[T any] struct {
 	*OpenAIDispatcherConfig
 	completer ChatCompleter
@@ -84,7 +85,6 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 	}
 
 	resp, err := d.completer.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		// TODO: configure this
 		Model: model,
 		Messages: []openai.ChatCompletionMessage{
 			{
