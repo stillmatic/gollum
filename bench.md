@@ -1,4 +1,6 @@
 
+2023-07-09 
+
 ```
 goos: linux
 goarch: amd64
@@ -29,6 +31,41 @@ BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000000-k=10-32         	       7	 2
 BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000000-k=100-32        	       4	 290261365 ns/op	   25664 B/op	       9 allocs/op
 PASS
 ok  	github.com/stillmatic/gollum	111.224s
+```
+
+post perf improvements, 2023-07-17 
+changes are most pronounced when k is large, more efficient memory reuse makes time nearly constant with k, about 2x improvement with large k.
+
+```
+goos: linux
+goarch: amd64
+pkg: github.com/stillmatic/gollum
+cpu: AMD Ryzen 9 7950X 16-Core Processor            
+BenchmarkMemoryVectorStore/BenchmarkInsert-n=10-32         	   12562	     86781 ns/op	   64680 B/op	      10 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=10-k=1-32      	 1259478	       967.6 ns/op	     120 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=10-k=10-32     	 1201736	       993.5 ns/op	     304 B/op	       3 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkInsert-n=100-32        	    1335	    847394 ns/op	  652949 B/op	     190 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=100-k=1-32     	  143896	      8509 ns/op	     120 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=100-k=10-32    	  122300	      9787 ns/op	     624 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=100-k=100-32   	  111930	     11152 ns/op	    2752 B/op	       3 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkInsert-n=1000-32       	     127	   8455112 ns/op	 6477091 B/op	    2734 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000-k=1-32    	   13416	     88695 ns/op	     120 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000-k=10-32   	   12246	     97176 ns/op	     624 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000-k=100-32  	    9746	    114710 ns/op	    5952 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkInsert-n=10000-32      	      14	  88090856 ns/op	65255787 B/op	   29740 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=10000-k=1-32   	     769	   1357818 ns/op	     120 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=10000-k=10-32  	     727	   1555869 ns/op	     624 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=10000-k=100-32 	     752	   1574506 ns/op	    5952 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkInsert-n=100000-32     	       2	 888843642 ns/op	648192776 B/op	  299774 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=100000-k=1-32  	      69	  15276284 ns/op	     120 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=100000-k=10-32 	      79	  14270086 ns/op	     624 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=100000-k=100-32         	      68	  15162731 ns/op	    5952 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkInsert-n=1000000-32             	       1	8644221139 ns/op	6552072176 B/op	 2999841 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000000-k=1-32          	       8	 141239584 ns/op	     120 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000000-k=10-32         	       1	1354937045 ns/op	     624 B/op	       4 allocs/op
+BenchmarkMemoryVectorStore/BenchmarkQuery-n=1000000-k=100-32        	       7	 156217518 ns/op	    5952 B/op	       4 allocs/op
+PASS
+ok  	github.com/stillmatic/gollum	105.535s
 ```
 
 post perf improvement - mac. stabilizes the allocations
