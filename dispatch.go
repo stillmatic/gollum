@@ -10,26 +10,38 @@ type Dispatcher[T any] interface {
 	Prompt(ctx context.Context, prompt string) (interface{}, error)
 }
 
-type OpenAIDispatcher[T any] struct {
-	client *openai.Client
-	fi     openai.FunctionDefinition
-	parser Parser[T]
+type DummyDispatcher[T any] struct{}
+
+func NewDummyDispatcher[T any]() *DummyDispatcher[T] {
+	return &DummyDispatcher[T]{}
 }
 
-func NewOpenAIDispatcher[T any](name, description string, client *openai.Client) *OpenAIDispatcher[T] {
+func (d *DummyDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, error) {
+	var t T
+	return t, nil
+}
+
+// OpenAIDispatcher dispatches to any OpenAI compatible model.
+type OpenAIDispatcher[T any] struct {
+	completer ChatCompleter
+	fi        openai.FunctionDefinition
+	parser    Parser[T]
+}
+
+func NewOpenAIDispatcher[T any](name, description string, completer ChatCompleter) *OpenAIDispatcher[T] {
 	var t T
 	fi := StructToJsonSchema(name, description, t)
 	parser := NewJSONParserGeneric[T](true)
 	return &OpenAIDispatcher[T]{
-		client: client,
-		fi:     openai.FunctionDefinition(fi),
-		parser: parser,
+		completer: completer,
+		fi:        openai.FunctionDefinition(fi),
+		parser:    parser,
 	}
 }
 
 func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, error) {
 	var output T
-	resp, err := d.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	resp, err := d.completer.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		// TODO: configure this
 		Model: openai.GPT3Dot5Turbo0613,
 		Messages: []openai.ChatCompletionMessage{
