@@ -39,6 +39,11 @@ expected := dinnerParty{
 	}
 ```
 
+Some similar libraries / ideas: 
+
+- Rust: [grantslatton/ai-functions](https://github.com/grantslatton/ai-functions/blob/main/ai_bin/src/main.rs)
+- Python: [jxnl/openai_function_call](https://github.com/jxnl/openai_function_call)
+
 ## Parsing
 
 ### Simplest
