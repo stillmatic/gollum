@@ -92,7 +92,10 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 				Content: prompt,
 			},
 		},
-		Functions:   []openai.FunctionDefinition{d.fi},
+		Functions: []openai.FunctionDefinition{d.fi},
+		FunctionCall: struct {
+			Name string `json:"name"`
+		}{Name: d.fi.Name},
 		Temperature: temperature,
 		MaxTokens:   maxTokens,
 	})
