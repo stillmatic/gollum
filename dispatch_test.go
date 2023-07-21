@@ -64,7 +64,10 @@ func TestOpenAIDispatcher(t *testing.T) {
 				Content: "Tell me about dinosaurs",
 			},
 		},
-		Functions:   []openai.FunctionDefinition{fi},
+		Functions: []openai.FunctionDefinition{fi},
+		FunctionCall: struct {
+			Name string `json:"name"`
+		}{Name: fi.Name},
 		MaxTokens:   512,
 		Temperature: 0.0,
 	}

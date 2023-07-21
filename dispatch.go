@@ -88,7 +88,7 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 		Model: model,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role:    openai.ChatMessageRoleSystem,
+				Role:    openai.ChatMessageRoleUser,
 				Content: prompt,
 			},
 		},
