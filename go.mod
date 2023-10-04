@@ -6,8 +6,9 @@ require (
 	github.com/antonmedv/expr v1.12.5
 	github.com/chewxy/math32 v1.10.1
 	github.com/google/uuid v1.3.0
-	github.com/invopop/jsonschema v0.7.0
+	github.com/invopop/jsonschema v0.12.0
 	github.com/joho/godotenv v1.5.1
+	github.com/klauspost/compress v1.16.7
 	github.com/pkg/errors v0.9.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/sashabaranov/go-openai v1.12.0
@@ -18,14 +19,17 @@ require (
 )
 
 require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
 	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/viterin/partial v1.0.0 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
 	golang.org/x/net v0.6.0 // indirect
