@@ -1,4 +1,4 @@
-package gollum
+package vectorstore
 
 import (
 	"context"
@@ -7,24 +7,25 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
+	"github.com/stillmatic/gollum"
 	"github.com/viterin/vek/vek32"
 	"gocloud.dev/blob"
 )
 
 // MemoryVectorStore embeds documents on insert and stores them in memory
 type MemoryVectorStore struct {
-	Documents []Document
-	LLM       Embedder
+	Documents []gollum.Document
+	LLM       gollum.Embedder
 }
 
-func NewMemoryVectorStore(llm Embedder) *MemoryVectorStore {
+func NewMemoryVectorStore(llm gollum.Embedder) *MemoryVectorStore {
 	return &MemoryVectorStore{
-		Documents: make([]Document, 0),
+		Documents: make([]gollum.Document, 0),
 		LLM:       llm,
 	}
 }
 
-func (m *MemoryVectorStore) Insert(ctx context.Context, d Document) error {
+func (m *MemoryVectorStore) Insert(ctx context.Context, d gollum.Document) error {
 	// replace newlines with spaces and strip whitespace, per OpenAI's recommendation
 	if d.Embedding == nil {
 		cleanText := strings.ReplaceAll(d.Content, "\n", " ")
@@ -58,12 +59,12 @@ func (m *MemoryVectorStore) Persist(ctx context.Context, bucket *blob.Bucket, pa
 	return nil
 }
 
-func NewMemoryVectorStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path string, llm Embedder) (*MemoryVectorStore, error) {
+func NewMemoryVectorStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path string, llm gollum.Embedder) (*MemoryVectorStore, error) {
 	data, err := bucket.ReadAll(ctx, path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
 	}
-	var documents []Document
+	var documents []gollum.Document
 	err = json.Unmarshal(data, &documents)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal JSON")
@@ -74,7 +75,7 @@ func NewMemoryVectorStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path
 	}, nil
 }
 
-func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*Document, error) {
+func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*gollum.Document, error) {
 	if len(m.Documents) == 0 {
 		return nil, errors.New("no documents in store")
 	}
@@ -112,7 +113,7 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*Docu
 		}
 	}
 
-	result := make([]*Document, k)
+	result := make([]*gollum.Document, k)
 	for i := 0; i < k; i++ {
 		ns := scores.Pop()
 		doc := ns.Document
@@ -122,6 +123,6 @@ func (m *MemoryVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*Docu
 }
 
 // RetrieveAll returns all documents
-func (m *MemoryVectorStore) RetrieveAll(ctx context.Context) ([]Document, error) {
+func (m *MemoryVectorStore) RetrieveAll(ctx context.Context) ([]gollum.Document, error) {
 	return m.Documents, nil
 }

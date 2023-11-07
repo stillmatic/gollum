@@ -1,4 +1,4 @@
-package gollum_test
+package vectorstore_test
 
 import (
 	"bufio"
@@ -12,13 +12,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stillmatic/gollum"
+	"github.com/stillmatic/gollum/vectorstore"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCompressedVectorStore(t *testing.T) {
-	vs := gollum.NewGzipVectorStore()
+	vs := vectorstore.NewGzipVectorStore()
 	t.Run("implements interface", func(t *testing.T) {
-		var vs2 gollum.VectorStore
+		var vs2 vectorstore.VectorStore
 		vs2 = vs
 		assert.NotNil(t, vs2)
 	})
@@ -46,7 +47,7 @@ func TestCompressedVectorStore(t *testing.T) {
 				Content: str,
 			})
 		}
-		docs, err := vs.Query(ctx, gollum.QueryRequest{
+		docs, err := vs.Query(ctx, vectorstore.QueryRequest{
 			Query: "Where was the new robot unveiled?",
 			K:     5,
 		})
@@ -64,11 +65,11 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 	// note that runtime doesn't really depend on K -
 	ks := []int{1, 10, 100}
 	// benchmark inserts
-	stores := map[string]gollum.VectorStore{
-		"DummyVectorStore":   gollum.NewDummyVectorStore(),
-		"StdGzipVectorStore": gollum.NewStdGzipVectorStore(),
-		"ZstdVectorStore":    gollum.NewZstdVectorStore(),
-		"GzipVectorStore":    gollum.NewGzipVectorStore(),
+	stores := map[string]vectorstore.VectorStore{
+		"DummyVectorStore":   vectorstore.NewDummyVectorStore(),
+		"StdGzipVectorStore": vectorstore.NewStdGzipVectorStore(),
+		"ZstdVectorStore":    vectorstore.NewZstdVectorStore(),
+		"GzipVectorStore":    vectorstore.NewGzipVectorStore(),
 	}
 
 	for vsName, vs := range stores {
@@ -137,7 +138,7 @@ func BenchmarkCompressedVectorStore(b *testing.B) {
 						for i := 0; i < size; i++ {
 							vs.Insert(ctx, gollum.NewDocumentFromString(lines[i]))
 						}
-						query := gollum.QueryRequest{
+						query := vectorstore.QueryRequest{
 							Query: lines[size+1],
 						}
 						b.ReportAllocs()
@@ -167,8 +168,8 @@ func syntheticString() string {
 }
 
 // syntheticQuery return query request with random embedding
-func syntheticQuery(k int) gollum.QueryRequest {
-	return gollum.QueryRequest{
+func syntheticQuery(k int) vectorstore.QueryRequest {
+	return vectorstore.QueryRequest{
 		Query: syntheticString(),
 		K:     k,
 	}
@@ -329,11 +330,11 @@ func BenchmarkConcatenateStrings(b *testing.B) {
 }
 
 func BenchmarkCompress(b *testing.B) {
-	compressors := map[string]gollum.Compressor{
-		"DummyCompressor":   gollum.NewDummyVectorStore().Compressor,
-		"StdGzipCompressor": gollum.NewStdGzipVectorStore().Compressor,
-		"ZstdCompressor":    gollum.NewZstdVectorStore().Compressor,
-		"GzipCompressor":    gollum.NewGzipVectorStore().Compressor,
+	compressors := map[string]vectorstore.Compressor{
+		"DummyCompressor":   vectorstore.NewDummyVectorStore().Compressor,
+		"StdGzipCompressor": vectorstore.NewStdGzipVectorStore().Compressor,
+		"ZstdCompressor":    vectorstore.NewZstdVectorStore().Compressor,
+		"GzipCompressor":    vectorstore.NewGzipVectorStore().Compressor,
 	}
 	str := syntheticString()
 	b.ResetTimer()

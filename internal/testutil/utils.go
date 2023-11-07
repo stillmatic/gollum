@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 
 	"github.com/sashabaranov/go-openai"
@@ -54,4 +55,40 @@ func (api *TestAPI) SendRequest(ctx context.Context, chatRequest openai.ChatComp
 	}
 
 	return &chatResponse, nil
+}
+
+func GetRandomEmbedding(n int) []float32 {
+	vec := make([]float32, n)
+	for i := range vec {
+		vec[i] = rand.Float32()
+	}
+	return vec
+}
+
+func GetRandomEmbeddingResponse(n int, dim int) openai.EmbeddingResponse {
+	data := make([]openai.Embedding, n)
+	for i := range data {
+		data[i] = openai.Embedding{
+			Embedding: GetRandomEmbedding(dim),
+		}
+	}
+	resp := openai.EmbeddingResponse{
+		Data: data,
+	}
+	return resp
+}
+
+func GetRandomChatCompletionResponse(n int) openai.ChatCompletionResponse {
+	choices := make([]openai.ChatCompletionChoice, n)
+	for i := range choices {
+		choices[i] = openai.ChatCompletionChoice{
+			Message: openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: fmt.Sprintf("test? %d", i),
+			},
+		}
+	}
+	return openai.ChatCompletionResponse{
+		Choices: choices,
+	}
 }

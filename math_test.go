@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	math "github.com/chewxy/math32"
+	"github.com/stillmatic/gollum/internal/testutil"
 	"github.com/viterin/vek/vek32"
 )
 
@@ -32,8 +33,8 @@ func BenchmarkCosSim(b *testing.B) {
 	ns := []int{256, 512, 768, 1024}
 	b.Run("weaviate", func(b *testing.B) {
 		for _, n := range ns {
-			A := getRandomEmbedding(n)
-			B := getRandomEmbedding(n)
+			A := testutil.GetRandomEmbedding(n)
+			B := testutil.GetRandomEmbedding(n)
 			b.ResetTimer()
 			b.Run(fmt.Sprintf("%d", n), func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
@@ -48,8 +49,8 @@ func BenchmarkCosSim(b *testing.B) {
 	})
 	b.Run("vek", func(b *testing.B) {
 		for _, n := range ns {
-			A := getRandomEmbedding(n)
-			B := getRandomEmbedding(n)
+			A := testutil.GetRandomEmbedding(n)
+			B := testutil.GetRandomEmbedding(n)
 			b.ResetTimer()
 			b.Run(fmt.Sprintf("%d", n), func(b *testing.B) {
 				for i := 0; i < b.N; i++ {

@@ -1,7 +1,9 @@
-package gollum
+package vectorstore
 
 import (
 	"context"
+
+	"github.com/stillmatic/gollum"
 )
 
 // QueryRequest is a struct that contains the query and optional query strings or embeddings
@@ -17,13 +19,13 @@ type QueryRequest struct {
 }
 
 type VectorStore interface {
-	Insert(context.Context, Document) error
-	Query(ctx context.Context, qb QueryRequest) ([]*Document, error)
-	RetrieveAll(ctx context.Context) ([]Document, error)
+	Insert(context.Context, gollum.Document) error
+	Query(ctx context.Context, qb QueryRequest) ([]*gollum.Document, error)
+	RetrieveAll(ctx context.Context) ([]gollum.Document, error)
 }
 
 type NodeSimilarity struct {
-	Document   *Document
+	Document   *gollum.Document
 	Similarity float32
 }
 

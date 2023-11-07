@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
+	"github.com/stillmatic/gollum/vectorstore"
 	"github.com/viterin/vek/vek32"
 )
 
@@ -133,17 +134,17 @@ func (l *LLMEncoder) EncodeBatch(ctx context.Context, docs []string) ([][]float3
 }
 
 type VectorSearcher struct {
-	vs gollum.VectorStore
+	vs vectorstore.VectorStore
 }
 
-func NewVectorSearcher(vs gollum.VectorStore) *VectorSearcher {
+func NewVectorSearcher(vs vectorstore.VectorStore) *VectorSearcher {
 	return &VectorSearcher{
 		vs: vs,
 	}
 }
 
 func (v *VectorSearcher) Search(ctx context.Context, query []float32, n int) ([]*gollum.Document, error) {
-	qb := gollum.QueryRequest{
+	qb := vectorstore.QueryRequest{
 		EmbeddingFloats: query,
 		K:               n,
 	}

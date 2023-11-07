@@ -1,4 +1,4 @@
-package gollum
+package vectorstore
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 
 	gzip "github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
+	"github.com/stillmatic/gollum"
 	"github.com/stillmatic/gollum/syncpool"
 )
 
@@ -90,7 +91,7 @@ func (g *StdGzipCompressor) Compress(src []byte) []byte {
 }
 
 type CompressedDocument struct {
-	*Document
+	*gollum.Document
 	Encoded   []byte
 	Unencoded []byte
 }
@@ -102,7 +103,7 @@ type CompressedVectorStore struct {
 
 // Insert compresses the document and inserts it into the store.
 // An alternative implementation would ONLY store the compressed representation and decompress as necessary.
-func (ts *CompressedVectorStore) Insert(ctx context.Context, d Document) error {
+func (ts *CompressedVectorStore) Insert(ctx context.Context, d gollum.Document) error {
 	bb := bufPool.Get().(*bytes.Buffer)
 	defer bufPool.Put(bb)
 	bb.Reset()
@@ -128,7 +129,7 @@ var bufPool = sync.Pool{
 
 var spaceBytes = []byte(" ")
 
-func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*Document, error) {
+func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([]*gollum.Document, error) {
 	bb := bufPool.Get().(*bytes.Buffer)
 	defer bufPool.Put(bb)
 	bb.Reset()
@@ -167,7 +168,7 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 		bb.Reset()
 	}
 
-	docs := make([]*Document, k)
+	docs := make([]*gollum.Document, k)
 	for i := range docs {
 		docs[k-i-1] = h.Pop().Document
 	}
@@ -175,8 +176,8 @@ func (cvs *CompressedVectorStore) Query(ctx context.Context, qb QueryRequest) ([
 	return docs, nil
 }
 
-func (cvs *CompressedVectorStore) RetrieveAll(ctx context.Context) ([]Document, error) {
-	docs := make([]Document, len(cvs.Data))
+func (cvs *CompressedVectorStore) RetrieveAll(ctx context.Context) ([]gollum.Document, error) {
+	docs := make([]gollum.Document, len(cvs.Data))
 	for i, doc := range cvs.Data {
 		docs[i] = *doc.Document
 	}
