@@ -72,7 +72,7 @@ func TestEndToEnd(t *testing.T) {
 		fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
 		chatRequest := openai.ChatCompletionRequest{
-			Model: "gpt-3.5-turbo-0613",
+			Model: openai.GPT3Dot5Turbo1106,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    "user",

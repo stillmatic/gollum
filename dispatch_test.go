@@ -2,6 +2,7 @@ package gollum_test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"text/template"
 
@@ -19,6 +20,10 @@ type testInput struct {
 
 type templateInput struct {
 	Topic string
+}
+
+type wordCountOutput struct {
+	Count int `json:"count" jsonschema:"required" jsonschema_description:"The number of words in the sentence"`
 }
 
 func TestDummyDispatcher(t *testing.T) {
@@ -46,7 +51,8 @@ func TestDummyDispatcher(t *testing.T) {
 func TestOpenAIDispatcher(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	completer := mock_gollum.NewMockChatCompleter(ctrl)
-	d := gollum.NewOpenAIDispatcher[testInput]("random_conversation", "Given a topic, return random words", completer, nil)
+	systemPrompt := "When prompted, use the tool."
+	d := gollum.NewOpenAIDispatcher[testInput]("random_conversation", "Given a topic, return random words", systemPrompt, completer, nil)
 
 	ctx := context.Background()
 	expected := testInput{
@@ -58,15 +64,19 @@ func TestOpenAIDispatcher(t *testing.T) {
 	fi := openai.FunctionDefinition(gollum.StructToJsonSchema("random_conversation", "Given a topic, return random words", testInput{}))
 	ti := openai.Tool{Type: "function", Function: fi}
 	expectedRequest := openai.ChatCompletionRequest{
-		Model: openai.GPT3Dot5Turbo0613,
+		Model: openai.GPT3Dot5Turbo1106,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role:    openai.ChatMessageRoleSystem,
+				Role:    openai.ChatMessageRoleUser,
 				Content: "Tell me about dinosaurs",
 			},
 		},
-		Tools:       []openai.Tool{ti},
-		ToolChoice:  fi.Name,
+		Tools: []openai.Tool{ti},
+		ToolChoice: openai.ToolChoice{
+			Type: "function",
+			Function: openai.ToolFunction{
+				Name: "random_conversation",
+			}},
 		MaxTokens:   512,
 		Temperature: 0.0,
 	}
@@ -126,4 +136,13 @@ func TestOpenAIDispatcher(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, output)
 	})
+}
+
+func TestDispatchIntegration(t *testing.T) {
+	completer := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+	systemPrompt := "When prompted, use the tool on the user's input."
+	d := gollum.NewOpenAIDispatcher[wordCountOutput]("wordCounter", "count the number of words in a sentence", systemPrompt, completer, nil)
+	output, err := d.Prompt(context.Background(), "I like dinosaurs")
+	assert.NoError(t, err)
+	assert.Equal(t, 3, output.Count)
 }
