@@ -139,6 +139,7 @@ func TestOpenAIDispatcher(t *testing.T) {
 }
 
 func TestDispatchIntegration(t *testing.T) {
+	t.Skip("Skipping integration test")
 	completer := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
 	systemPrompt := "When prompted, use the tool on the user's input."
 	d := gollum.NewOpenAIDispatcher[wordCountOutput]("wordCounter", "count the number of words in a sentence", systemPrompt, completer, nil)
