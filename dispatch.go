@@ -48,12 +48,13 @@ type OpenAIDispatcherConfig struct {
 // For any type T and prompt, it will generate and parse the response into T.
 type OpenAIDispatcher[T any] struct {
 	*OpenAIDispatcherConfig
-	completer ChatCompleter
-	ti        openai.Tool
-	parser    Parser[T]
+	completer    ChatCompleter
+	ti           openai.Tool
+	systemPrompt string
+	parser       Parser[T]
 }
 
-func NewOpenAIDispatcher[T any](name, description string, completer ChatCompleter, cfg *OpenAIDispatcherConfig) *OpenAIDispatcher[T] {
+func NewOpenAIDispatcher[T any](name, description, systemPrompt string, completer ChatCompleter, cfg *OpenAIDispatcherConfig) *OpenAIDispatcher[T] {
 	// note: name must not have spaces - valid json
 	// we won't check here but the openai client will throw an error
 	var t T
@@ -65,12 +66,13 @@ func NewOpenAIDispatcher[T any](name, description string, completer ChatComplete
 		completer:              completer,
 		ti:                     ti,
 		parser:                 parser,
+		systemPrompt:           systemPrompt,
 	}
 }
 
 func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, error) {
 	var output T
-	model := openai.GPT3Dot5Turbo0613
+	model := openai.GPT3Dot5Turbo1106
 	temperature := float32(0.0)
 	maxTokens := 512
 	if d.OpenAIDispatcherConfig != nil {
@@ -85,24 +87,35 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 		}
 	}
 
-	resp, err := d.completer.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	req := openai.ChatCompletionRequest{
 		Model: model,
 		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: d.systemPrompt,
+			},
 			{
 				Role:    openai.ChatMessageRoleUser,
 				Content: prompt,
 			},
 		},
-		Tools:       []openai.Tool{d.ti},
-		ToolChoice:  d.ti.Function.Name,
+		Tools: []openai.Tool{d.ti},
+		ToolChoice: openai.ToolChoice{
+			Type: "function",
+			Function: openai.ToolFunction{
+				Name: d.ti.Function.Name,
+			}},
 		Temperature: temperature,
 		MaxTokens:   maxTokens,
-	})
+	}
+
+	resp, err := d.completer.CreateChatCompletion(ctx, req)
 	if err != nil {
 		return output, err
 	}
 
-	output, err = d.parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
+	toolOutput := resp.Choices[0].Message.ToolCalls[0].Function.Arguments
+	output, err = d.parser.Parse(ctx, []byte(toolOutput))
 	if err != nil {
 		return output, err
 	}
