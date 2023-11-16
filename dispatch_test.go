@@ -56,6 +56,7 @@ func TestOpenAIDispatcher(t *testing.T) {
 	inpStr := `{"topic": "dinosaurs", "random_words": ["dinosaur", "fossil", "extinct"]}`
 
 	fi := openai.FunctionDefinition(gollum.StructToJsonSchema("random_conversation", "Given a topic, return random words", testInput{}))
+	ti := openai.Tool{Type: "function", Function: fi}
 	expectedRequest := openai.ChatCompletionRequest{
 		Model: openai.GPT3Dot5Turbo0613,
 		Messages: []openai.ChatCompletionMessage{
@@ -64,10 +65,8 @@ func TestOpenAIDispatcher(t *testing.T) {
 				Content: "Tell me about dinosaurs",
 			},
 		},
-		Functions: []openai.FunctionDefinition{fi},
-		FunctionCall: struct {
-			Name string `json:"name"`
-		}{Name: fi.Name},
+		Tools:       []openai.Tool{ti},
+		ToolChoice:  fi.Name,
 		MaxTokens:   512,
 		Temperature: 0.0,
 	}
@@ -80,10 +79,14 @@ func TestOpenAIDispatcher(t *testing.T) {
 					Message: openai.ChatCompletionMessage{
 						Role:    openai.ChatMessageRoleSystem,
 						Content: "Hello there!",
-						FunctionCall: &openai.FunctionCall{
-							Name:      "random_conversation",
-							Arguments: inpStr,
-						},
+						ToolCalls: []openai.ToolCall{
+							{
+								Type: "function",
+								Function: openai.FunctionCall{
+									Name:      "random_conversation",
+									Arguments: inpStr,
+								},
+							}},
 					},
 				},
 			},
@@ -101,10 +104,14 @@ func TestOpenAIDispatcher(t *testing.T) {
 					Message: openai.ChatCompletionMessage{
 						Role:    openai.ChatMessageRoleSystem,
 						Content: "Hello there!",
-						FunctionCall: &openai.FunctionCall{
-							Name:      "random_conversation",
-							Arguments: inpStr,
-						},
+						ToolCalls: []openai.ToolCall{
+							{
+								Type: "function",
+								Function: openai.FunctionCall{
+									Name:      "random_conversation",
+									Arguments: inpStr,
+								},
+							}},
 					},
 				},
 			},

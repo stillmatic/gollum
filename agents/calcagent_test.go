@@ -32,9 +32,11 @@ func TestCalcAgentMocked(t *testing.T) {
 		Choices: []openai.ChatCompletionChoice{
 			{
 				Message: openai.ChatCompletionMessage{
-					Role:         openai.ChatMessageRoleAssistant,
-					Content:      "",
-					FunctionCall: &openai.FunctionCall{Name: "calc", Arguments: string(expectedBytes)},
+					Role:    openai.ChatMessageRoleAssistant,
+					Content: "",
+					ToolCalls: []openai.ToolCall{
+						{Function: openai.FunctionCall{Name: "calc", Arguments: string(expectedBytes)}},
+					},
 				},
 			},
 		},

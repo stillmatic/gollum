@@ -43,10 +43,6 @@ func (c *CalcAgent) Description() string {
 	return "convert natural language and evaluate mathematical expressions"
 }
 
-type functionCall struct {
-	Name string `json:"name"`
-}
-
 func (c *CalcAgent) Run(ctx context.Context, input interface{}) (interface{}, error) {
 	cinput, ok := input.(CalcAgentInput)
 	if !ok {
@@ -65,15 +61,18 @@ func (c *CalcAgent) Run(ctx context.Context, input interface{}) (interface{}, er
 				Content: cinput.Content,
 			},
 		},
-		MaxTokens:    128,
-		Functions:    []openai.FunctionDefinition{c.functionInput},
-		FunctionCall: functionCall{Name: "calculator"},
+		MaxTokens: 128,
+		Tools: []openai.Tool{{
+			Type:     "function",
+			Function: c.functionInput,
+		}},
+		ToolChoice: "calculator",
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "couldn't call the LLM")
 	}
 	// parse response
-	parsed, err := c.parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
+	parsed, err := c.parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 	if err != nil {
 		return "", errors.Wrap(err, "couldn't parse response")
 	}

@@ -78,28 +78,24 @@ type getWeatherInput struct {
 
 fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
-chatRequest := chatCompletionRequest{
-    ChatCompletionRequest: openai.ChatCompletionRequest{
-        Model: "gpt-3.5-turbo-0613",
-        Messages: []openai.ChatCompletionMessage{
-            {
-                Role:    "user",
-                Content: "Whats the temperature in Boston?",
-            },
+chatRequest := openai.ChatCompletionRequest{
+    Model: "gpt-3.5-turbo-0613",
+    Messages: []openai.ChatCompletionMessage{
+        {
+            Role:    "user",
+            Content: "Whats the temperature in Boston?",
         },
-        MaxTokens:   512,
-        Temperature: 0.0,
     },
-    Functions: []gollum.FunctionInput{
-        fi,
-    },
-    FunctionCall: "auto",
+    MaxTokens:   256,
+    Temperature: 0.0,
+    Tools:       []openai.Tool{{Type: "function", Function: openai.FunctionDefinition(fi)}},
+    ToolChoice:  "weather",
 }
 
 ctx := context.Background()
 resp, err := api.SendRequest(ctx, chatRequest)
 parser := gollum.NewJSONParser[getWeatherInput](false)
-input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+input, err := parser.Parse(ctx, resp.Choices[0].Message.ToolCalls[0].Function.Arguments)
 ```
 
 This example steps through all that, end to end. Some of this is 'sort of' pseudo-code, as the OpenAI clients I use haven't implemented support yet for functions, but it should also hopefully show that minimal modifications are necessary to upstream libraries.
@@ -131,10 +127,15 @@ chatRequest := chatCompletionRequest{
         MaxTokens:   256,
         Temperature: 0.0,
     },
-    Functions: []gollum.FunctionInput{fi},
+    Tools: []openai.Tool{
+        {
+            Type: "function",
+            Function: fi,
+        }
+    }
 }
 parser := gollum.NewJSONParser[openai.ChatCompletionRequest](false)
-input, err := parser.Parse(ctx, resp.Choices[0].Message.FunctionCall.Arguments)
+input, err := parser.Parse(ctx, resp.Choices[0].Message.ToolCalls[0].Function.Arguments)
 ```
 
 On the first try, this yielded the following result:

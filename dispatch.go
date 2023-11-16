@@ -49,7 +49,7 @@ type OpenAIDispatcherConfig struct {
 type OpenAIDispatcher[T any] struct {
 	*OpenAIDispatcherConfig
 	completer ChatCompleter
-	fi        openai.FunctionDefinition
+	ti        openai.Tool
 	parser    Parser[T]
 }
 
@@ -58,11 +58,12 @@ func NewOpenAIDispatcher[T any](name, description string, completer ChatComplete
 	// we won't check here but the openai client will throw an error
 	var t T
 	fi := StructToJsonSchema(name, description, t)
+	ti := FunctionInputToTool(fi)
 	parser := NewJSONParserGeneric[T](true)
 	return &OpenAIDispatcher[T]{
 		OpenAIDispatcherConfig: cfg,
 		completer:              completer,
-		fi:                     openai.FunctionDefinition(fi),
+		ti:                     ti,
 		parser:                 parser,
 	}
 }
@@ -92,10 +93,8 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 				Content: prompt,
 			},
 		},
-		Functions: []openai.FunctionDefinition{d.fi},
-		FunctionCall: struct {
-			Name string `json:"name"`
-		}{Name: d.fi.Name},
+		Tools:       []openai.Tool{d.ti},
+		ToolChoice:  d.ti.Function.Name,
 		Temperature: temperature,
 		MaxTokens:   maxTokens,
 	})
@@ -103,7 +102,7 @@ func (d *OpenAIDispatcher[T]) Prompt(ctx context.Context, prompt string) (T, err
 		return output, err
 	}
 
-	output, err = d.parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
+	output, err = d.parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 	if err != nil {
 		return output, err
 	}

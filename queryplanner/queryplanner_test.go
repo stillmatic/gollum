@@ -38,8 +38,11 @@ func TestQueryPlanner(t *testing.T) {
 		Messages:    messages,
 		Model:       "gpt-3.5-turbo-0613",
 		Temperature: 0.0,
-		Functions: []openai.FunctionDefinition{
-			openai.FunctionDefinition(fi),
+		Tools: []openai.Tool{
+			{
+				Type:     "function",
+				Function: openai.FunctionDefinition(fi),
+			},
 		},
 	}
 	ctx := context.Background()
@@ -48,7 +51,7 @@ func TestQueryPlanner(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	parser := gollum.NewJSONParserGeneric[QueryPlan](false)
-	queryPlan, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
+	queryPlan, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 	assert.NoError(t, err)
 	assert.NotNil(t, queryPlan)
 	t.Log(queryPlan)

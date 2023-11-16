@@ -81,7 +81,8 @@ func TestEndToEnd(t *testing.T) {
 			},
 			MaxTokens:   256,
 			Temperature: 0.0,
-			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
+			Tools:       []openai.Tool{{Type: "function", Function: openai.FunctionDefinition(fi)}},
+			ToolChoice:  "weather",
 		}
 
 		ctx := context.Background()
@@ -91,15 +92,15 @@ func TestEndToEnd(t *testing.T) {
 		assert.Equal(t, resp.Model, "gpt-3.5-turbo-0613")
 		assert.NotEmpty(t, resp.Choices)
 		assert.Empty(t, resp.Choices[0].Message.Content)
-		assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
-		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "weather")
+		assert.NotNil(t, resp.Choices[0].Message.ToolCalls)
+		assert.Equal(t, resp.Choices[0].Message.ToolCalls[0].Function.Name, "weather")
 
 		// this is somewhat flaky - about 20% of the time it returns 'Boston'
 		expectedArg := []byte(`{"location": "Boston, MA"}`)
 		parser := gollum.NewJSONParserGeneric[getWeatherInput](false)
 		expectedStruct, err := parser.Parse(ctx, expectedArg)
 		assert.NoError(t, err)
-		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStruct, input)
 	})
@@ -116,8 +117,8 @@ func TestEndToEnd(t *testing.T) {
 			},
 			MaxTokens:   256,
 			Temperature: 0.0,
-			Functions: []openai.FunctionDefinition{
-				openai.FunctionDefinition(fi),
+			Tools: []openai.Tool{
+				{Type: "function", Function: openai.FunctionDefinition(fi)},
 			},
 		}
 		ctx := context.Background()
@@ -127,15 +128,15 @@ func TestEndToEnd(t *testing.T) {
 		assert.Equal(t, resp.Model, "gpt-3.5-turbo-0613")
 		assert.NotEmpty(t, resp.Choices)
 		assert.Empty(t, resp.Choices[0].Message.Content)
-		assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
-		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "split_word")
+		assert.NotNil(t, resp.Choices[0].Message.ToolCalls)
+		assert.Equal(t, resp.Choices[0].Message.ToolCalls[0].Function.Name, "split_word")
 
 		expectedStruct := counter{
 			Count: 7,
 			Words: []string{"What", "is", "the", "weather", "like", "in", "Boston?"},
 		}
 		parser := gollum.NewJSONParserGeneric[counter](false)
-		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStruct, input)
 	})
@@ -157,7 +158,9 @@ func TestEndToEnd(t *testing.T) {
 			},
 			MaxTokens:   256,
 			Temperature: 0.0,
-			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
+			Tools: []openai.Tool{
+				{Type: "function", Function: openai.FunctionDefinition(fi)},
+			},
 		}
 
 		ctx := context.Background()
@@ -166,11 +169,11 @@ func TestEndToEnd(t *testing.T) {
 		assert.Equal(t, resp.Model, "gpt-3.5-turbo-0613")
 		assert.NotEmpty(t, resp.Choices)
 		assert.Empty(t, resp.Choices[0].Message.Content)
-		assert.NotNil(t, resp.Choices[0].Message.FunctionCall)
-		assert.Equal(t, resp.Choices[0].Message.FunctionCall.Name, "ChatCompletion")
+		assert.NotNil(t, resp.Choices[0].Message.ToolCalls)
+		assert.Equal(t, resp.Choices[0].Message.ToolCalls[0].Function.Name, "ChatCompletion")
 
 		parser := gollum.NewJSONParserGeneric[openai.ChatCompletionRequest](false)
-		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, input)
 
@@ -205,7 +208,9 @@ func TestEndToEnd(t *testing.T) {
 			},
 			MaxTokens:   256,
 			Temperature: 0.0,
-			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
+			Tools: []openai.Tool{
+				{Type: "function", Function: openai.FunctionDefinition(fi)},
+			},
 		}
 		ctx := context.Background()
 		resp, err := api.SendRequest(ctx, chatRequest)
@@ -214,7 +219,7 @@ func TestEndToEnd(t *testing.T) {
 		assert.Equal(t, 0, 1)
 
 		parser := gollum.NewJSONParserGeneric[blobNode](false)
-		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.FunctionCall.Arguments))
+		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, input)
 		assert.Equal(t, input, blobNode{
@@ -282,7 +287,9 @@ Output:  What is the population of Jason's home country?
 			},
 			MaxTokens:   256,
 			Temperature: 0.0,
-			Functions:   []openai.FunctionDefinition{openai.FunctionDefinition(fi)},
+			Tools: []openai.Tool{
+				{Type: "function", Function: openai.FunctionDefinition(fi)},
+			},
 		}
 		ctx := context.Background()
 		resp, err := api.SendRequest(ctx, chatRequest)

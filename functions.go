@@ -4,12 +4,26 @@ import (
 	"reflect"
 
 	"github.com/invopop/jsonschema"
+	"github.com/sashabaranov/go-openai"
 )
 
 type FunctionInput struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 	Parameters  any    `json:"parameters"`
+}
+
+type OAITool struct {
+	// Type is always "function" for now.
+	Type     string        `json:"type"`
+	Function FunctionInput `json:"function"`
+}
+
+func FunctionInputToTool(fi FunctionInput) openai.Tool {
+	return openai.Tool{
+		Type:     "function",
+		Function: openai.FunctionDefinition(fi),
+	}
 }
 
 func StructToJsonSchema(functionName string, functionDescription string, inputStruct interface{}) FunctionInput {
