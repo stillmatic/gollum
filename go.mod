@@ -14,7 +14,7 @@ require (
 	github.com/sashabaranov/go-openai v1.17.7
 	github.com/stretchr/testify v1.8.4
 	github.com/viterin/vek v0.4.2
-	go.uber.org/mock v0.3.0
+	go.uber.org/mock v0.4.0
 	gocloud.dev v0.34.0
 )
 
