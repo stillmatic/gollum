@@ -3,7 +3,7 @@ module github.com/stillmatic/gollum
 go 1.20
 
 require (
-	github.com/antonmedv/expr v1.15.3
+	github.com/antonmedv/expr v1.16.3
 	github.com/chewxy/math32 v1.10.1
 	github.com/google/uuid v1.4.0
 	github.com/invopop/jsonschema v0.12.0
