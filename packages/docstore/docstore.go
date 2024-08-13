@@ -1,27 +1,28 @@
-package gollum
+package docstore
 
 import (
 	"context"
 	"encoding/json"
+	"github.com/stillmatic/gollum"
 
 	"github.com/pkg/errors"
 	"gocloud.dev/blob"
 )
 
 type DocStore interface {
-	Insert(context.Context, Document) error
-	Retrieve(ctx context.Context, id string) (Document, error)
+	Insert(context.Context, gollum.Document) error
+	Retrieve(ctx context.Context, id string) (gollum.Document, error)
 }
 
 // MemoryDocStore is a simple in-memory document store.
 // It's functionally a hashmap / inverted-index.
 type MemoryDocStore struct {
-	Documents map[string]Document
+	Documents map[string]gollum.Document
 }
 
 func NewMemoryDocStore() *MemoryDocStore {
 	return &MemoryDocStore{
-		Documents: make(map[string]Document),
+		Documents: make(map[string]gollum.Document),
 	}
 }
 
@@ -31,7 +32,7 @@ func NewMemoryDocStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path st
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read documents from disk")
 	}
-	var nodes map[string]Document
+	var nodes map[string]gollum.Document
 	err = json.Unmarshal(data, &nodes)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal documents from JSON")
@@ -42,16 +43,16 @@ func NewMemoryDocStoreFromDisk(ctx context.Context, bucket *blob.Bucket, path st
 }
 
 // Insert adds a node to the document store. It overwrites duplicates.
-func (m *MemoryDocStore) Insert(ctx context.Context, d Document) error {
+func (m *MemoryDocStore) Insert(ctx context.Context, d gollum.Document) error {
 	m.Documents[d.ID] = d
 	return nil
 }
 
 // Retrieve returns a node from the document store matching an ID.
-func (m *MemoryDocStore) Retrieve(ctx context.Context, id string) (Document, error) {
+func (m *MemoryDocStore) Retrieve(ctx context.Context, id string) (gollum.Document, error) {
 	v, ok := m.Documents[id]
 	if !ok {
-		return Document{}, errors.New("document not found")
+		return gollum.Document{}, errors.New("document not found")
 	}
 	return v, nil
 }
@@ -77,7 +78,7 @@ func (m *MemoryDocStore) Load(ctx context.Context, bucket *blob.Bucket, path str
 	if err != nil {
 		return errors.Wrap(err, "failed to read documents from disk")
 	}
-	var nodes map[string]Document
+	var nodes map[string]gollum.Document
 	err = json.Unmarshal(data, &nodes)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal documents from JSON")

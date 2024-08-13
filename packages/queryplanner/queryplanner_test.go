@@ -3,15 +3,15 @@ package queryplanner_test
 import (
 	"context"
 	"fmt"
+	"github.com/stillmatic/gollum/packages/dispatch"
+	"github.com/stillmatic/gollum/packages/jsonparser"
 	. "github.com/stillmatic/gollum/packages/queryplanner"
 	"os"
 	"testing"
 
 	"github.com/joho/godotenv"
 	"github.com/sashabaranov/go-openai"
-	"github.com/stillmatic/gollum"
 	"github.com/stillmatic/gollum/internal/testutil"
-	. "github.com/stillmatic/gollum/queryplanner"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +22,7 @@ func TestQueryPlanner(t *testing.T) {
 	assert.NotEmpty(t, openAIKey)
 
 	api := testutil.NewTestAPI(baseAPIURL, openAIKey)
-	fi := gollum.StructToJsonSchemaGeneric[QueryPlan]("QueryPlan", "Use this to plan a query.")
+	fi := dispatch.StructToJsonSchemaGeneric[QueryPlan]("QueryPlan", "Use this to plan a query.")
 	question := "What is the difference between populations of Canada and Jason's home country?"
 
 	messages := []openai.ChatCompletionMessage{
@@ -52,7 +52,7 @@ func TestQueryPlanner(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	parser := gollum.NewJSONParserGeneric[QueryPlan](false)
+	parser := jsonparser.NewJSONParserGeneric[QueryPlan](false)
 	queryPlan, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 	assert.NoError(t, err)
 	assert.NotNil(t, queryPlan)

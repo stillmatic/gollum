@@ -1,4 +1,4 @@
-package gollum_test
+package dispatch_test
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"text/template"
 
 	"github.com/sashabaranov/go-openai"
-	"github.com/stillmatic/gollum"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -27,7 +26,7 @@ type wordCountOutput struct {
 }
 
 func TestDummyDispatcher(t *testing.T) {
-	d := gollum.NewDummyDispatcher[testInput]()
+	d := NewDummyDispatcher[testInput]()
 
 	t.Run("prompt", func(t *testing.T) {
 		output, err := d.Prompt(context.Background(), "Talk to me about Dinosaurs")
@@ -52,7 +51,7 @@ func TestOpenAIDispatcher(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	completer := mock_gollum.NewMockChatCompleter(ctrl)
 	systemPrompt := "When prompted, use the tool."
-	d := gollum.NewOpenAIDispatcher[testInput]("random_conversation", "Given a topic, return random words", systemPrompt, completer, nil)
+	d := NewOpenAIDispatcher[testInput]("random_conversation", "Given a topic, return random words", systemPrompt, completer, nil)
 
 	ctx := context.Background()
 	expected := testInput{
@@ -61,7 +60,7 @@ func TestOpenAIDispatcher(t *testing.T) {
 	}
 	inpStr := `{"topic": "dinosaurs", "random_words": ["dinosaur", "fossil", "extinct"]}`
 
-	fi := openai.FunctionDefinition(gollum.StructToJsonSchema("random_conversation", "Given a topic, return random words", testInput{}))
+	fi := openai.FunctionDefinition(StructToJsonSchema("random_conversation", "Given a topic, return random words", testInput{}))
 	ti := openai.Tool{Type: "function", Function: &fi}
 	expectedRequest := openai.ChatCompletionRequest{
 		Model: openai.GPT3Dot5Turbo1106,
@@ -142,7 +141,7 @@ func TestDispatchIntegration(t *testing.T) {
 	t.Skip("Skipping integration test")
 	completer := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
 	systemPrompt := "When prompted, use the tool on the user's input."
-	d := gollum.NewOpenAIDispatcher[wordCountOutput]("wordCounter", "count the number of words in a sentence", systemPrompt, completer, nil)
+	d := NewOpenAIDispatcher[wordCountOutput]("wordCounter", "count the number of words in a sentence", systemPrompt, completer, nil)
 	output, err := d.Prompt(context.Background(), "I like dinosaurs")
 	assert.NoError(t, err)
 	assert.Equal(t, 3, output.Count)

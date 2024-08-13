@@ -1,11 +1,10 @@
-package gollum_test
+package jsonparser_test
 
 import (
 	"context"
 	"encoding/json"
 	"testing"
 
-	"github.com/stillmatic/gollum"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,7 +46,7 @@ var badEmployees = []employee{
 
 func TestParsers(t *testing.T) {
 	t.Run("JSONParser", func(t *testing.T) {
-		jsonParser := gollum.NewJSONParserGeneric[company](false)
+		jsonParser := NewJSONParserGeneric[company](false)
 		input, err := json.Marshal(testCo)
 		assert.NoError(t, err)
 
@@ -56,7 +55,7 @@ func TestParsers(t *testing.T) {
 		assert.Equal(t, testCo, actual)
 
 		// test failure
-		employeeParser := gollum.NewJSONParserGeneric[employee](true)
+		employeeParser := NewJSONParserGeneric[employee](true)
 		input2, err := json.Marshal(badEmployees)
 		assert.NoError(t, err)
 		_, err = employeeParser.Parse(context.Background(), input2)
@@ -64,7 +63,7 @@ func TestParsers(t *testing.T) {
 	})
 
 	t.Run("testbenchmark", func(t *testing.T) {
-		jsonParser := gollum.NewJSONParserGeneric[company](true)
+		jsonParser := NewJSONParserGeneric[company](true)
 		input, err := json.Marshal(testCo)
 		assert.NoError(t, err)
 		actual, err := jsonParser.Parse(context.Background(), input)
@@ -75,7 +74,7 @@ func TestParsers(t *testing.T) {
 
 func BenchmarkParser(b *testing.B) {
 	b.Run("JSONParser-NoValidate", func(b *testing.B) {
-		jsonParser := gollum.NewJSONParserGeneric[company](false)
+		jsonParser := NewJSONParserGeneric[company](false)
 		input, err := json.Marshal(testCo)
 		assert.NoError(b, err)
 		b.ResetTimer()
@@ -86,7 +85,7 @@ func BenchmarkParser(b *testing.B) {
 		}
 	})
 	b.Run("JSONParser-Validate", func(b *testing.B) {
-		jsonParser := gollum.NewJSONParserGeneric[company](true)
+		jsonParser := NewJSONParserGeneric[company](true)
 		input, err := json.Marshal(testCo)
 		assert.NoError(b, err)
 		b.ResetTimer()

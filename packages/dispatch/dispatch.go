@@ -1,8 +1,10 @@
-package gollum
+package dispatch
 
 import (
 	"context"
 	"fmt"
+	"github.com/stillmatic/gollum"
+	"github.com/stillmatic/gollum/packages/jsonparser"
 	"strings"
 	"text/template"
 
@@ -48,19 +50,19 @@ type OpenAIDispatcherConfig struct {
 // For any type T and prompt, it will generate and parse the response into T.
 type OpenAIDispatcher[T any] struct {
 	*OpenAIDispatcherConfig
-	completer    ChatCompleter
+	completer    gollum.ChatCompleter
 	ti           openai.Tool
 	systemPrompt string
-	parser       Parser[T]
+	parser       jsonparser.Parser[T]
 }
 
-func NewOpenAIDispatcher[T any](name, description, systemPrompt string, completer ChatCompleter, cfg *OpenAIDispatcherConfig) *OpenAIDispatcher[T] {
+func NewOpenAIDispatcher[T any](name, description, systemPrompt string, completer gollum.ChatCompleter, cfg *OpenAIDispatcherConfig) *OpenAIDispatcher[T] {
 	// note: name must not have spaces - valid json
 	// we won't check here but the openai client will throw an error
 	var t T
 	fi := StructToJsonSchema(name, description, t)
 	ti := FunctionInputToTool(fi)
-	parser := NewJSONParserGeneric[T](true)
+	parser := jsonparser.NewJSONParserGeneric[T](true)
 	return &OpenAIDispatcher[T]{
 		OpenAIDispatcherConfig: cfg,
 		completer:              completer,

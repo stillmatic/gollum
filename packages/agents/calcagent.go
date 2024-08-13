@@ -2,6 +2,8 @@ package agents
 
 import (
 	"context"
+	"github.com/stillmatic/gollum/packages/dispatch"
+	"github.com/stillmatic/gollum/packages/jsonparser"
 	"github.com/stillmatic/gollum/packages/tools"
 	"strconv"
 
@@ -15,13 +17,13 @@ type CalcAgent struct {
 	env           map[string]interface{}
 	llm           gollum.ChatCompleter
 	functionInput openai.FunctionDefinition
-	parser        gollum.Parser[tools.CalculatorInput]
+	parser        jsonparser.Parser[tools.CalculatorInput]
 }
 
 func NewCalcAgent(llm gollum.ChatCompleter) *CalcAgent {
 	// might as well pre-compute it
-	fi := gollum.StructToJsonSchemaGeneric[tools.CalculatorInput]("calculator", "evaluate mathematical expressions")
-	parser := gollum.NewJSONParserGeneric[tools.CalculatorInput](true)
+	fi := dispatch.StructToJsonSchemaGeneric[tools.CalculatorInput]("calculator", "evaluate mathematical expressions")
+	parser := jsonparser.NewJSONParserGeneric[tools.CalculatorInput](true)
 	return &CalcAgent{
 		tool:          tools.CalculatorTool{},
 		env:           make(map[string]interface{}),

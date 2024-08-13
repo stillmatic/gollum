@@ -1,4 +1,4 @@
-package gollum_test
+package docstore_test
 
 import (
 	"context"

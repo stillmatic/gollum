@@ -1,14 +1,14 @@
-package gollum_test
+package dispatch_test
 
 import (
 	"context"
 	"encoding/json"
+	"github.com/stillmatic/gollum/packages/jsonparser"
 	"os"
 	"testing"
 
 	"github.com/joho/godotenv"
 	"github.com/sashabaranov/go-openai"
-	"github.com/stillmatic/gollum"
 	"github.com/stillmatic/gollum/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,14 +42,14 @@ type queryNode struct {
 
 func TestConstructJSONSchema(t *testing.T) {
 	t.Run("add_", func(t *testing.T) {
-		res := gollum.StructToJsonSchema("add_", "adds two numbers", addInput{})
+		res := StructToJsonSchema("add_", "adds two numbers", addInput{})
 		expectedStr := `{"name":"add_","description":"adds two numbers","parameters":{"properties":{"a":{"type":"integer"},"b":{"type":"integer"}},"type":"object","required":["a","b"]}}`
 		b, err := json.Marshal(res)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStr, string(b))
 	})
 	t.Run("getWeather", func(t *testing.T) {
-		res := gollum.StructToJsonSchema("getWeather", "Get the current weather in a given location", getWeatherInput{})
+		res := StructToJsonSchema("getWeather", "Get the current weather in a given location", getWeatherInput{})
 		assert.Equal(t, res.Name, "getWeather")
 		assert.Equal(t, res.Description, "Get the current weather in a given location")
 		// assert.Equal(t, res.Parameters.Type, "object")
@@ -73,7 +73,7 @@ func TestEndToEnd(t *testing.T) {
 	api := testutil.NewTestAPI(baseAPIURL, openAIKey)
 	t.Run("weather", func(t *testing.T) {
 		t.Skip("somewhat flaky - word counter is more reliable")
-		fi := gollum.StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
+		fi := StructToJsonSchema("weather", "Get the current weather in a given location", getWeatherInput{})
 
 		chatRequest := openai.ChatCompletionRequest{
 			Model: openai.GPT3Dot5Turbo1106,
@@ -101,7 +101,7 @@ func TestEndToEnd(t *testing.T) {
 
 		// this is somewhat flaky - about 20% of the time it returns 'Boston'
 		expectedArg := []byte(`{"location": "Boston, MA"}`)
-		parser := gollum.NewJSONParserGeneric[getWeatherInput](false)
+		parser := jsonparser.NewJSONParserGeneric[getWeatherInput](false)
 		expectedStruct, err := parser.Parse(ctx, expectedArg)
 		assert.NoError(t, err)
 		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
@@ -110,7 +110,7 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	t.Run("counter", func(t *testing.T) {
-		fi := gollum.StructToJsonSchema("split_word", "Break sentences into words", counter{})
+		fi := StructToJsonSchema("split_word", "Break sentences into words", counter{})
 		chatRequest := openai.ChatCompletionRequest{
 			Model: "gpt-3.5-turbo-0613",
 			Messages: []openai.ChatCompletionMessage{
@@ -139,14 +139,14 @@ func TestEndToEnd(t *testing.T) {
 			Count: 7,
 			Words: []string{"What", "is", "the", "weather", "like", "in", "Boston?"},
 		}
-		parser := gollum.NewJSONParserGeneric[counter](false)
+		parser := jsonparser.NewJSONParserGeneric[counter](false)
 		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStruct, input)
 	})
 
 	t.Run("callOpenAI", func(t *testing.T) {
-		fi := gollum.StructToJsonSchema("ChatCompletion", "Call the OpenAI chat completion API", openai.ChatCompletionRequest{})
+		fi := StructToJsonSchema("ChatCompletion", "Call the OpenAI chat completion API", openai.ChatCompletionRequest{})
 
 		chatRequest := openai.ChatCompletionRequest{
 			Model: "gpt-3.5-turbo-0613",
@@ -176,7 +176,7 @@ func TestEndToEnd(t *testing.T) {
 		assert.NotNil(t, resp.Choices[0].Message.ToolCalls)
 		assert.Equal(t, resp.Choices[0].Message.ToolCalls[0].Function.Name, "ChatCompletion")
 
-		parser := gollum.NewJSONParserGeneric[openai.ChatCompletionRequest](false)
+		parser := jsonparser.NewJSONParserGeneric[openai.ChatCompletionRequest](false)
 		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, input)
@@ -192,7 +192,7 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	t.Run("directory", func(t *testing.T) {
-		fi := gollum.StructToJsonSchema("directory", "Get the contents of a directory", blobNode{})
+		fi := StructToJsonSchema("directory", "Get the contents of a directory", blobNode{})
 		inp := `root
 ├── dir1
 │   ├── file1.txt
@@ -222,7 +222,7 @@ func TestEndToEnd(t *testing.T) {
 		t.Log(resp)
 		assert.Equal(t, 0, 1)
 
-		parser := gollum.NewJSONParserGeneric[blobNode](false)
+		parser := jsonparser.NewJSONParserGeneric[blobNode](false)
 		input, err := parser.Parse(ctx, []byte(resp.Choices[0].Message.ToolCalls[0].Function.Arguments))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, input)
@@ -268,7 +268,7 @@ func TestEndToEnd(t *testing.T) {
 		})
 	})
 	t.Run("planner", func(t *testing.T) {
-		fi := gollum.StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
+		fi := StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
 		// inp := `Jason is from Canada`
 
 		chatRequest := openai.ChatCompletionRequest{
@@ -307,12 +307,12 @@ Output:  What is the population of Jason's home country?
 func BenchmarkStructToJsonSchem(b *testing.B) {
 	b.Run("basic", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			gollum.StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
+			StructToJsonSchema("queryPlanner", "Plan a multi-step query", queryNode{})
 		}
 	})
 	b.Run("generic", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			gollum.StructToJsonSchemaGeneric[queryNode]("queryPlanner", "Plan a multi-step query")
+			StructToJsonSchemaGeneric[queryNode]("queryPlanner", "Plan a multi-step query")
 		}
 	})
 }

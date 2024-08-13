@@ -1,4 +1,4 @@
-package gollum
+package jsonparser
 
 import (
 	"context"
