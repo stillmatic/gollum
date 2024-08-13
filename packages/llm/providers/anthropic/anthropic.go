@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-type AnthropicProvider struct {
+type Provider struct {
 	client *anthropic.Client
 }
 
-func (p *AnthropicProvider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
+func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
 	res, err := p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
 		MessagesRequest: anthropic.MessagesRequest{
 			Model: req.Config.ModelName,
@@ -37,7 +37,7 @@ func (p *AnthropicProvider) GenerateResponse(ctx context.Context, req llm.InferR
 	return res.GetFirstContentText(), nil
 }
 
-func (p *AnthropicProvider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
+func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
 	outChan := make(chan llm.StreamDelta)
 	go func() {
 		defer close(outChan)

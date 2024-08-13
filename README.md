@@ -4,6 +4,7 @@ Production-grade LLM tooling. At least, in theory -- stuff changes fast so don't
 
 ## Features
 
+- Sane LLM provider abstraction. 
 - Automated function dispatch
     - Parses arbitrary Go structs into JSONSchema for OpenAI - and validates when unmarshaling back to your structs
     - Simplified API to generate results from a single prompt or template

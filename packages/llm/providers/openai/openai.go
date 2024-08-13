@@ -11,11 +11,11 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-type OpenAIProvider struct {
+type Provider struct {
 	client *openai.Client
 }
 
-func (p *OpenAIProvider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
+func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
 	msg := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: req.Message,
@@ -55,7 +55,7 @@ func (p *OpenAIProvider) GenerateResponse(ctx context.Context, req llm.InferRequ
 	return res.Choices[0].Message.Content, nil
 }
 
-func (p *OpenAIProvider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
+func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
 	outChan := make(chan llm.StreamDelta)
 	go func() {
 		defer close(outChan)

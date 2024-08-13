@@ -26,11 +26,11 @@ func flattenResponse(resp *genai.GenerateContentResponse) string {
 	return rtn.String()
 }
 
-type GoogleProvider struct {
+type Provider struct {
 	client *genai.Client
 }
 
-func (p *GoogleProvider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
+func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
 	model := p.client.GenerativeModel(req.Config.ModelName)
 	model.SetTemperature(req.MessageOptions.Temperature)
 	model.SetMaxOutputTokens(int32(req.MessageOptions.MaxTokens))
@@ -57,7 +57,7 @@ func (p *GoogleProvider) GenerateResponse(ctx context.Context, req llm.InferRequ
 	return respStr, nil
 }
 
-func (p *GoogleProvider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
+func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
 	outChan := make(chan llm.StreamDelta)
 
 	go func() {
