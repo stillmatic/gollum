@@ -109,6 +109,7 @@ type StreamDelta struct {
 	EOF  bool
 }
 
+//go:generate mockgen -source llm.go -destination internal/mocks/llm.go
 type LLMProvider interface {
 	GenerateResponse(ctx context.Context, req InferRequest) (string, error)
 	GenerateResponseAsync(ctx context.Context, req InferRequest) (<-chan StreamDelta, error)
