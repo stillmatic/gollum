@@ -3,10 +3,10 @@ package hyde_test
 import (
 	"context"
 	"fmt"
+	"github.com/stillmatic/gollum/packages/hyde"
 	"testing"
 
 	"github.com/stillmatic/gollum"
-	"github.com/stillmatic/gollum/hyde"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
 	"github.com/stillmatic/gollum/internal/testutil"
 	"github.com/stillmatic/gollum/vectorstore"

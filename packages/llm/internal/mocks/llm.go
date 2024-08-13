@@ -6,9 +6,9 @@ package mock_llm
 
 import (
 	context "context"
+	"github.com/stillmatic/gollum/packages/llm"
 	reflect "reflect"
 
-	llm "github.com/stillmatic/gollum/llm"
 	gomock "go.uber.org/mock/gomock"
 )
 

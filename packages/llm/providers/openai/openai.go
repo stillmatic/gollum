@@ -3,12 +3,12 @@ package openai
 import (
 	"context"
 	"encoding/base64"
+	"github.com/stillmatic/gollum/packages/llm"
 	"io"
 	"log/slog"
 
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
-	"github.com/stillmatic/gollum/llm"
 )
 
 type OpenAIProvider struct {

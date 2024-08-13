@@ -2,11 +2,11 @@ package anthropic
 
 import (
 	"context"
+	"github.com/stillmatic/gollum/packages/llm"
 	"log/slog"
 
 	"github.com/liushuangls/go-anthropic"
 	"github.com/pkg/errors"
-	"github.com/stillmatic/gollum/llm"
 )
 
 type AnthropicProvider struct {
