@@ -55,8 +55,8 @@ func (p *OpenAIProvider) GenerateResponse(ctx context.Context, req llm.InferRequ
 	return res.Choices[0].Message.Content, nil
 }
 
-func (p *OpenAIProvider) GenerateResponseAsync(ctx context.Context, req InferRequest) (<-chan StreamDelta, error) {
-	outChan := make(chan StreamDelta)
+func (p *OpenAIProvider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
+	outChan := make(chan llm.StreamDelta)
 	go func() {
 		defer close(outChan)
 		msg := openai.ChatCompletionMessage{
@@ -110,11 +110,11 @@ func (p *OpenAIProvider) GenerateResponseAsync(ctx context.Context, req InferReq
 				select {
 				case <-ctx.Done():
 					return
-				case outChan <- StreamDelta{
+				case outChan <- llm.StreamDelta{
 					Text: content}:
 				}
 			} else {
-				outChan <- StreamDelta{
+				outChan <- llm.StreamDelta{
 					EOF: true,
 				}
 			}
