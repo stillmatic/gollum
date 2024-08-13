@@ -60,6 +60,10 @@ func TestConstructJSONSchema(t *testing.T) {
 	})
 }
 
+func ptr[T any](v T) *T {
+	return &v
+}
+
 func TestEndToEnd(t *testing.T) {
 	godotenv.Load()
 	baseAPIURL := "https://api.openai.com/v1/chat/completions"
@@ -81,7 +85,7 @@ func TestEndToEnd(t *testing.T) {
 			},
 			MaxTokens:   256,
 			Temperature: 0.0,
-			Tools:       []openai.Tool{{Type: "function", Function: openai.FunctionDefinition(fi)}},
+			Tools:       []openai.Tool{{Type: "function", Function: ptr(openai.FunctionDefinition(fi))}},
 			ToolChoice:  "weather",
 		}
 
@@ -118,7 +122,7 @@ func TestEndToEnd(t *testing.T) {
 			MaxTokens:   256,
 			Temperature: 0.0,
 			Tools: []openai.Tool{
-				{Type: "function", Function: openai.FunctionDefinition(fi)},
+				{Type: "function", Function: ptr(openai.FunctionDefinition(fi))},
 			},
 		}
 		ctx := context.Background()
@@ -159,7 +163,7 @@ func TestEndToEnd(t *testing.T) {
 			MaxTokens:   256,
 			Temperature: 0.0,
 			Tools: []openai.Tool{
-				{Type: "function", Function: openai.FunctionDefinition(fi)},
+				{Type: "function", Function: ptr(openai.FunctionDefinition(fi))},
 			},
 		}
 
@@ -209,7 +213,7 @@ func TestEndToEnd(t *testing.T) {
 			MaxTokens:   256,
 			Temperature: 0.0,
 			Tools: []openai.Tool{
-				{Type: "function", Function: openai.FunctionDefinition(fi)},
+				{Type: "function", Function: ptr(openai.FunctionDefinition(fi))},
 			},
 		}
 		ctx := context.Background()
@@ -288,7 +292,7 @@ Output:  What is the population of Jason's home country?
 			MaxTokens:   256,
 			Temperature: 0.0,
 			Tools: []openai.Tool{
-				{Type: "function", Function: openai.FunctionDefinition(fi)},
+				{Type: "function", Function: ptr(openai.FunctionDefinition(fi))},
 			},
 		}
 		ctx := context.Background()

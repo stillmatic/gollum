@@ -34,6 +34,7 @@ func TestQueryPlanner(t *testing.T) {
 			Content: fmt.Sprintf("Consider: %s\nGenerate the correct query plan.", question),
 		},
 	}
+	f_ := openai.FunctionDefinition(fi)
 	chatRequest := openai.ChatCompletionRequest{
 		Messages:    messages,
 		Model:       "gpt-3.5-turbo-0613",
@@ -41,7 +42,7 @@ func TestQueryPlanner(t *testing.T) {
 		Tools: []openai.Tool{
 			{
 				Type:     "function",
-				Function: openai.FunctionDefinition(fi),
+				Function: &f_,
 			},
 		},
 	}

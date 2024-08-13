@@ -2,11 +2,11 @@ package google
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
+	"github.com/pkg/errors"
 	"github.com/stillmatic/gollum/llm"
 	"google.golang.org/api/iterator"
 )

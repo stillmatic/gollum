@@ -20,9 +20,10 @@ type OAITool struct {
 }
 
 func FunctionInputToTool(fi FunctionInput) openai.Tool {
+	f_ := openai.FunctionDefinition(fi)
 	return openai.Tool{
 		Type:     "function",
-		Function: openai.FunctionDefinition(fi),
+		Function: &f_,
 	}
 }
 
