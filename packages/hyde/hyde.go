@@ -3,11 +3,11 @@ package hyde
 import (
 	"context"
 	"fmt"
+	"github.com/stillmatic/gollum/packages/vectorstore"
 
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
-	"github.com/stillmatic/gollum/vectorstore"
 	"github.com/viterin/vek/vek32"
 )
 

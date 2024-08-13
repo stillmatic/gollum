@@ -2,12 +2,12 @@ package agents
 
 import (
 	"context"
+	"github.com/stillmatic/gollum/packages/tools"
 	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
-	"github.com/stillmatic/gollum/tools"
 )
 
 type CalcAgent struct {

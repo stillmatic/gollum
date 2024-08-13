@@ -4,13 +4,13 @@ import (
 	"bytes"
 	stdgzip "compress/gzip"
 	"context"
+	"github.com/stillmatic/gollum/packages/syncpool"
 	"io"
 	"sync"
 
 	gzip "github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
 	"github.com/stillmatic/gollum"
-	"github.com/stillmatic/gollum/syncpool"
 )
 
 // Compressor is a single method interface that returns a compressed representation of an object.

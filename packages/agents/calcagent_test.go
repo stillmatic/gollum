@@ -3,13 +3,13 @@ package agents_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/stillmatic/gollum/packages/agents"
+	"github.com/stillmatic/gollum/packages/tools"
 	"os"
 	"testing"
 
 	"github.com/sashabaranov/go-openai"
-	"github.com/stillmatic/gollum/agents"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
-	"github.com/stillmatic/gollum/tools"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

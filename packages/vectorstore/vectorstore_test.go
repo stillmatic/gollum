@@ -3,13 +3,13 @@ package vectorstore_test
 import (
 	"context"
 	"fmt"
+	vectorstore2 "github.com/stillmatic/gollum/packages/vectorstore"
 	"math/rand"
 	"testing"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/stillmatic/gollum"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
-	"github.com/stillmatic/gollum/vectorstore"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"gocloud.dev/blob/fileblob"
@@ -24,7 +24,7 @@ func getRandomEmbedding(n int) []float32 {
 }
 
 // setup with godotenv load
-func initialize(tb testing.TB) (*mock_gollum.MockEmbedder, *vectorstore.MemoryVectorStore) {
+func initialize(tb testing.TB) (*mock_gollum.MockEmbedder, *vectorstore2.MemoryVectorStore) {
 	tb.Helper()
 
 	ctrl := gomock.NewController(tb)
@@ -32,10 +32,10 @@ func initialize(tb testing.TB) (*mock_gollum.MockEmbedder, *vectorstore.MemoryVe
 	ctx := context.Background()
 	bucket, err := fileblob.OpenBucket("testdata", nil)
 	assert.NoError(tb, err)
-	mvs, err := vectorstore.NewMemoryVectorStoreFromDisk(ctx, bucket, "simple_store.json", oai)
+	mvs, err := vectorstore2.NewMemoryVectorStoreFromDisk(ctx, bucket, "simple_store.json", oai)
 	if err != nil {
 		fmt.Println(err)
-		mvs = vectorstore.NewMemoryVectorStore(oai)
+		mvs = vectorstore2.NewMemoryVectorStore(oai)
 		testStrs := []string{"Apple", "Orange", "Basketball"}
 		for i, s := range testStrs {
 			mv := gollum.NewDocumentFromString(s)
@@ -81,7 +81,7 @@ func TestMemoryVectorStore(t *testing.T) {
 	// should return apple and orange first.
 	t.Run("QueryWithQuery", func(t *testing.T) {
 		k := 2
-		qb := vectorstore.QueryRequest{
+		qb := vectorstore2.QueryRequest{
 			Query: "favorite fruit?",
 			K:     k,
 		}
@@ -107,7 +107,7 @@ func TestMemoryVectorStore(t *testing.T) {
 	// This should return basketball because the embedding str should override the query
 	t.Run("QueryWithEmbedding", func(t *testing.T) {
 		k := 1
-		qb := vectorstore.QueryRequest{
+		qb := vectorstore2.QueryRequest{
 			Query:            "What is your favorite fruit",
 			EmbeddingStrings: []string{"favorite sport?"},
 			K:                k,
@@ -148,7 +148,7 @@ func BenchmarkMemoryVectorStore(b *testing.B) {
 	dim := 768
 	for _, n := range nValues {
 		b.Run(fmt.Sprintf("BenchmarkInsert-n=%v", n), func(b *testing.B) {
-			mvs := vectorstore.NewMemoryVectorStore(llm)
+			mvs := vectorstore2.NewMemoryVectorStore(llm)
 			for i := 0; i < b.N; i++ {
 				for j := 0; j < n; j++ {
 					mv := gollum.Document{
@@ -163,7 +163,7 @@ func BenchmarkMemoryVectorStore(b *testing.B) {
 		for _, k := range kValues {
 			if k <= n {
 				b.Run(fmt.Sprintf("BenchmarkQuery-n=%v-k=%v", n, k), func(b *testing.B) {
-					mvs := vectorstore.NewMemoryVectorStore(llm)
+					mvs := vectorstore2.NewMemoryVectorStore(llm)
 					for j := 0; j < n; j++ {
 						mv := gollum.Document{
 							ID:        fmt.Sprintf("%v", j),
@@ -172,7 +172,7 @@ func BenchmarkMemoryVectorStore(b *testing.B) {
 						}
 						mvs.Insert(ctx, mv)
 					}
-					qb := vectorstore.QueryRequest{
+					qb := vectorstore2.QueryRequest{
 						EmbeddingFloats: getRandomEmbedding(dim),
 						K:               k,
 					}
@@ -193,13 +193,13 @@ func BenchmarkHeap(b *testing.B) {
 	ks := []int{1, 10, 100}
 
 	for _, k := range ks {
-		var h vectorstore.Heap
+		var h vectorstore2.Heap
 		h.Init(k)
 		b.Run(fmt.Sprintf("BenchmarkHeapPush-k=%v", k), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				doc := &gollum.Document{}
 				similarity := rand.Float32()
-				ns := vectorstore.NodeSimilarity{Document: doc, Similarity: similarity}
+				ns := vectorstore2.NodeSimilarity{Document: doc, Similarity: similarity}
 				h.Push(ns)
 				if h.Len() > k {
 					h.Pop()

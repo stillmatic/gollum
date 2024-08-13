@@ -2,18 +2,18 @@ package tools_test
 
 import (
 	"context"
+	tools2 "github.com/stillmatic/gollum/packages/tools"
 	"testing"
 
-	"github.com/stillmatic/gollum/tools"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCalculator(t *testing.T) {
-	calc := tools.CalculatorTool{}
-	var _ tools.Tool = &calc
+	calc := tools2.CalculatorTool{}
+	var _ tools2.Tool = &calc
 	ctx := context.Background()
 	t.Run("simple", func(t *testing.T) {
-		calcInput := tools.CalculatorInput{
+		calcInput := tools2.CalculatorInput{
 			Expression: "1 + 1",
 		}
 		output, err := calc.Run(ctx, &calcInput)
@@ -27,7 +27,7 @@ func TestCalculator(t *testing.T) {
 			"bar": "baz",
 		}
 
-		calcInput := tools.CalculatorInput{
+		calcInput := tools2.CalculatorInput{
 			Expression:  "foo + foo",
 			Environment: env,
 		}

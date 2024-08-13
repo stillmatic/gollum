@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/stillmatic/gollum/packages/hyde"
+	"github.com/stillmatic/gollum/packages/vectorstore"
 	"testing"
 
 	"github.com/stillmatic/gollum"
 	mock_gollum "github.com/stillmatic/gollum/internal/mocks"
 	"github.com/stillmatic/gollum/internal/testutil"
-	"github.com/stillmatic/gollum/vectorstore"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

@@ -3,6 +3,7 @@ package queryplanner_test
 import (
 	"context"
 	"fmt"
+	. "github.com/stillmatic/gollum/packages/queryplanner"
 	"os"
 	"testing"
 
