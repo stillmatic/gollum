@@ -62,7 +62,7 @@ func TestOpenAIDispatcher(t *testing.T) {
 	inpStr := `{"topic": "dinosaurs", "random_words": ["dinosaur", "fossil", "extinct"]}`
 
 	fi := openai.FunctionDefinition(gollum.StructToJsonSchema("random_conversation", "Given a topic, return random words", testInput{}))
-	ti := openai.Tool{Type: "function", Function: fi}
+	ti := openai.Tool{Type: "function", Function: &fi}
 	expectedRequest := openai.ChatCompletionRequest{
 		Model: openai.GPT3Dot5Turbo1106,
 		Messages: []openai.ChatCompletionMessage{

@@ -64,7 +64,7 @@ func (c *CalcAgent) Run(ctx context.Context, input interface{}) (interface{}, er
 		MaxTokens: 128,
 		Tools: []openai.Tool{{
 			Type:     "function",
-			Function: c.functionInput,
+			Function: &c.functionInput,
 		}},
 		ToolChoice: "calculator",
 	})
