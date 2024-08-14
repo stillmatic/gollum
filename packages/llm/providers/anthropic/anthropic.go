@@ -12,12 +12,21 @@ import (
 )
 
 type Provider struct {
-	client *anthropic.Client
+	client       *anthropic.Client
+	cacheEnabled bool
 }
 
 func NewAnthropicProvider(apiKey string) *Provider {
 	return &Provider{
 		client: anthropic.NewClient(apiKey),
+	}
+}
+
+func NewAnthropicProviderWithCache(apiKey string) *Provider {
+	client := anthropic.NewClient(apiKey, anthropic.WithBetaVersion(anthropic.BetaPromptCaching20240731))
+	return &Provider{
+		client:       client,
+		cacheEnabled: true,
 	}
 }
 
@@ -30,7 +39,12 @@ func reqToMessages(req llm.InferRequest) ([]anthropic.Message, error) {
 			return nil, errors.New("invalid role")
 		}
 		content := make([]anthropic.MessageContent, 0)
-		content = append(content, anthropic.NewTextMessageContent(m.Content))
+		txtContent := anthropic.NewTextMessageContent(m.Content)
+		// this will fail if the model is not configured to cache
+		if m.ShouldCache {
+			txtContent.SetCacheControl()
+		}
+		content = append(content, txtContent)
 		if m.Image != nil && len(*m.Image) > 0 {
 			b64Image := base64.StdEncoding.EncodeToString(*m.Image)
 			// TODO: support other image types

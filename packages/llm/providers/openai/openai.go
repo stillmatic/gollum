@@ -41,6 +41,10 @@ func NewHyperbolicProvider(apiKey string) *Provider {
 	return NewGenericProvider(apiKey, "https://api.hyperbolic.xyz/v1")
 }
 
+func NewDeepseekProvider(apiKey string) *Provider {
+	return NewGenericProvider(apiKey, "https://api.deepseek.com/v1")
+}
+
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
 	msgs := inferReqToOpenAIMessages(req.Messages)
 
