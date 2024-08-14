@@ -13,7 +13,8 @@ import (
 )
 
 type Provider struct {
-	client *genai.Client
+	client           *genai.Client
+	cachedContentMap map[string]struct{}
 }
 
 func NewGoogleProvider(ctx context.Context, apiKey string) (*Provider, error) {
@@ -22,7 +23,38 @@ func NewGoogleProvider(ctx context.Context, apiKey string) (*Provider, error) {
 		return nil, errors.Wrap(err, "google client error")
 	}
 
-	return &Provider{client: client}, nil
+	// load cached content map
+	iter := client.ListCachedContents(ctx)
+	cachedContentMap := make(map[string]struct{})
+	for {
+		cachedContent, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "google list cached content error")
+		}
+		cachedContentMap[cachedContent.Name] = struct{}{}
+	}
+
+	return &Provider{client: client,
+		cachedContentMap: cachedContentMap,
+	}, nil
+}
+
+func (p *Provider) UploadFile(ctx context.Context, value string) (string, error) {
+	// TODO: apply deterministic hash to value
+	key := "abc"
+
+	// get an io.reader for value
+	r := strings.NewReader(value)
+
+	file, err := p.client.UploadFile(ctx, key, r, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "google upload file error")
+	}
+
+	return file.Name, nil
 }
 
 func (p *Provider) getModel(req llm.InferRequest) *genai.GenerativeModel {
