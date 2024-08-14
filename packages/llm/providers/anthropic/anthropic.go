@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/liushuangls/go-anthropic"
+	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/pkg/errors"
 )
 
@@ -37,12 +37,12 @@ func reqToMessages(req llm.InferRequest) ([]anthropic.Message, error) {
 			content = append(content, anthropic.NewImageMessageContent(
 				anthropic.MessageContentImageSource{Type: "base64", MediaType: "image/png", Data: b64Image}))
 		}
-		msgs = append(msgs, anthropic.Message{
-			Role: m.Role,
-			Content: []anthropic.MessageContent{
-				anthropic.NewTextMessageContent(m.Content),
-			},
-		})
+		newMsg := anthropic.Message{
+			Role:    m.Role,
+			Content: content,
+		}
+
+		msgs = append(msgs, newMsg)
 	}
 
 	return msgs, nil
@@ -86,7 +86,7 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 				Temperature: &req.MessageOptions.Temperature,
 			},
 			OnContentBlockDelta: func(data anthropic.MessagesEventContentBlockDeltaData) {
-				if data.Delta.Text == "" {
+				if data.Delta.Text == nil {
 					outChan <- llm.StreamDelta{
 						EOF: true,
 					}
@@ -94,7 +94,7 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 				}
 
 				outChan <- llm.StreamDelta{
-					Text: data.Delta.Text,
+					Text: *data.Delta.Text,
 				}
 			},
 		})
