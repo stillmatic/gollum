@@ -77,6 +77,7 @@ func inferReqToOpenAIMessages(req []llm.InferMessage) []openai.ChatCompletionMes
 			msg.MultiContent = []openai.ChatMessagePart{
 				{
 					Type: openai.ChatMessagePartTypeImageURL,
+					// TODO: support other image types
 					ImageURL: &openai.ChatMessageImageURL{
 						URL:    "data:image/png;base64," + b64Image,
 						Detail: openai.ImageURLDetailAuto,
