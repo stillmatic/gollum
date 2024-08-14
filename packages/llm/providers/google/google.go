@@ -26,7 +26,7 @@ func NewGoogleProvider(ctx context.Context, apiKey string) (*Provider, error) {
 }
 
 func (p *Provider) getModel(req llm.InferRequest) *genai.GenerativeModel {
-	model := p.client.GenerativeModel(req.Config.ModelName)
+	model := p.client.GenerativeModel(req.ModelConfig.ModelName)
 	model.SetTemperature(req.MessageOptions.Temperature)
 	model.SetMaxOutputTokens(int32(req.MessageOptions.MaxTokens))
 	// lol...
@@ -41,13 +41,47 @@ func (p *Provider) getModel(req llm.InferRequest) *genai.GenerativeModel {
 }
 
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
-	model := p.getModel(req)
-	parts := []genai.Part{genai.Text(req.Message)}
-	if req.Image != nil && len(*req.Image) > 0 {
-		parts = append(parts, genai.ImageData("png", *req.Image))
+	if len(req.Messages) > 1 {
+		return p.generateResponseChat(ctx, req)
 	}
-
+	model := p.getModel(req)
+	parts := []genai.Part{genai.Text(req.Messages[0].Content)}
+	if req.Messages[0].Image != nil && len(*req.Messages[0].Image) > 0 {
+		parts = append(parts, genai.ImageData("png", *req.Messages[0].Image))
+	}
 	resp, err := model.GenerateContent(ctx, parts...)
+	if err != nil {
+		return "", errors.Wrap(err, "google generate content error")
+	}
+	respStr := flattenResponse(resp)
+
+	return respStr, nil
+}
+
+func (p *Provider) generateResponseChat(ctx context.Context, req llm.InferRequest) (string, error) {
+	model := p.getModel(req)
+	hist := make([]*genai.Content, 0, len(req.Messages))
+	for _, message := range req.Messages[:len(req.Messages)-1] {
+		parts := []genai.Part{genai.Text(message.Content)}
+		if message.Image != nil && len(*message.Image) > 0 {
+			parts = append(parts, genai.ImageData("png", *message.Image))
+		}
+		hist = append(hist, &genai.Content{
+			Parts: parts,
+			Role:  message.Role,
+		})
+	}
+	mostRecentMessage := req.Messages[len(req.Messages)-1]
+
+	// NB chua: this might be a bug but Google doesn't seem to accept multiple parts in the same message
+	// in the chat API. So can't send text + image if it exists.
+	//mostRecentMessagePart := []genai.Part{genai.Text(mostRecentMessage.Content)}
+	//if mostRecentMessage.Image != nil && len(*mostRecentMessage.Image) > 0 {
+	//	mostRecentMessagePart = append(mostRecentMessagePart, genai.ImageData("png", *mostRecentMessage.Image))
+	//}
+
+	cs := model.StartChat()
+	resp, err := cs.SendMessage(ctx, genai.Text(mostRecentMessage.Content))
 	if err != nil {
 		return "", errors.Wrap(err, "google generate content error")
 	}

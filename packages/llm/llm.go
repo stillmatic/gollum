@@ -20,10 +20,20 @@ type MessageOptions struct {
 	Temperature float32
 }
 
+type InferMessage struct {
+	Content string
+	Role    string
+	Image   *[]byte
+
+	ShouldCache bool
+}
+
 type InferRequest struct {
-	Message        string
-	Image          *[]byte
-	Config         ModelConfig
+	Messages []InferMessage
+
+	// ModelConfig describes the model to use for generating a response.
+	ModelConfig ModelConfig
+	// MessageOptions are options that can be passed to the model for generating a response.
 	MessageOptions MessageOptions
 }
 
@@ -35,6 +45,20 @@ type StreamDelta struct {
 type Responder interface {
 	GenerateResponse(ctx context.Context, req InferRequest) (string, error)
 	GenerateResponseAsync(ctx context.Context, req InferRequest) (<-chan StreamDelta, error)
+}
+
+// CachableResponder is a responder that can cache prompt inputs on the server.
+// The implementation differs per provider.
+// For example, Deepseek applies caching automatically.
+// Gemini requires users to explicitly cache and create new model instances from the cache.
+// Anthropic explicitly caches but does not require a particular ID (hash on their end?)
+type CachableResponder interface {
+	GenerateResponse(ctx context.Context, req InferRequest) (string, error)
+	GenerateResponseAsync(ctx context.Context, req InferRequest) (<-chan StreamDelta, error)
+
+	// CacheObject caches the given object with the given key with the provider.
+	CacheObject(ctx context.Context, key string, value InferMessage) error
+	GetCachedObject(ctx context.Context, key string) (InferMessage, error)
 }
 
 // ModelConfigStore is a simple in-memory store for model configurations.
