@@ -13,6 +13,12 @@ type Provider struct {
 	client *anthropic.Client
 }
 
+func NewAnthropicProvider(apiKey string) *Provider {
+	return &Provider{
+		client: anthropic.NewClient(apiKey),
+	}
+}
+
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
 	res, err := p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
 		MessagesRequest: anthropic.MessagesRequest{

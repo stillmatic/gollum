@@ -7,14 +7,6 @@ import (
 
 type ProviderType string
 
-const (
-	ProviderAnthropic ProviderType = "anthropic"
-	ProviderOpenAI    ProviderType = "openai"
-	ProviderGroq      ProviderType = "groq"
-	ProviderTogether  ProviderType = "together"
-	ProviderGoogle    ProviderType = "google"
-)
-
 type ModelConfig struct {
 	ProviderType ProviderType
 	ModelName    string

@@ -15,6 +15,36 @@ type Provider struct {
 	client *openai.Client
 }
 
+func NewOpenAIProvider(apiKey string) *Provider {
+	return &Provider{
+		client: openai.NewClient(apiKey),
+	}
+}
+
+func NewGenericProvider(apiKey string, baseURL string) *Provider {
+	genericConfig := openai.DefaultConfig(apiKey)
+	genericConfig.BaseURL = baseURL
+	return &Provider{
+		client: openai.NewClientWithConfig(genericConfig),
+	}
+}
+
+func NewTogetherProvider(apiKey string) *Provider {
+	return NewGenericProvider(apiKey, "https://api.together.xyz/v1")
+}
+
+func NewGroqProvider(apiKey string) *Provider {
+	return NewGenericProvider(apiKey, "https://api.groq.com/openai/v1/")
+}
+
+func NewHyperbolicProvider(apiKey string) *Provider {
+	return NewGenericProvider(apiKey, "https://api.hyperbolic.xyz/v1")
+}
+
+func NewDeepseekProvider(apiKey string) *Provider {
+	return NewGenericProvider(apiKey, "https://api.deepseek.com/v1")
+}
+
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
 	msg := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,

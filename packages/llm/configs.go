@@ -1,5 +1,16 @@
 package llm
 
+const (
+	ProviderAnthropic ProviderType = "anthropic"
+	ProviderGoogle    ProviderType = "google"
+
+	ProviderOpenAI     ProviderType = "openai"
+	ProviderGroq       ProviderType = "groq"
+	ProviderTogether   ProviderType = "together"
+	ProviderHyperbolic ProviderType = "hyperbolic"
+	ProviderDeepseek   ProviderType = "deepseek"
+)
+
 // configs that are user declared, here's some useful defaults
 const (
 	ConfigClaude3Dot5Sonnet = "claude-3.5-sonnet"
@@ -17,6 +28,14 @@ const (
 	ConfigGeminiFlash  = "gemini-flash"
 	ConfigGeminiPro    = "gemini-pro"
 	ConfigGeminiProExp = "gemini-pro-exp"
+
+	ConfigHyperbolicLlama405B     = "hyperbolic-llama-405b"
+	ConfigHyperbolicLlama405BBase = "hyperbolic-llama-405b-base"
+	ConfigHyperbolicLlama70B      = "hyperbolic-llama-70b"
+	ConfigHyperbolicLlama8B       = "hyperbolic-llama-8b"
+
+	ConfigDeepseekChat  = "deepseek-chat"
+	ConfigDeepseekCoder = "deepseek-coder"
 )
 
 var configs = map[string]ModelConfig{
@@ -30,7 +49,7 @@ var configs = map[string]ModelConfig{
 	},
 	ConfigGPT4o: {
 		ProviderType: ProviderOpenAI,
-		ModelName:    "gpt-4o",
+		ModelName:    "gpt-4o-2024-08-06",
 	},
 	ConfigGroqLlama70B: {
 		ProviderType: ProviderGroq,
@@ -67,5 +86,30 @@ var configs = map[string]ModelConfig{
 	ConfigGeminiProExp: {
 		ProviderType: ProviderGoogle,
 		ModelName:    "gemini-1.5-pro-exp-0801",
+	},
+	ConfigHyperbolicLlama405B: {
+		ProviderType: ProviderHyperbolic,
+		ModelName:    "meta-llama/Meta-Llama-3.1-405B-Instruct",
+	},
+	ConfigHyperbolicLlama405BBase: {
+		ProviderType: ProviderHyperbolic,
+		ModelName:    "meta-llama/Meta-Llama-3.1-405B",
+	},
+	ConfigHyperbolicLlama70B: {
+		ProviderType: ProviderHyperbolic,
+		ModelName:    "meta-llama/Meta-Llama-3.1-70B-Instruct",
+	},
+	ConfigHyperbolicLlama8B: {
+		ProviderType: ProviderHyperbolic,
+		ModelName:    "meta-llama/Meta-Llama-3.1-8B-Instruct",
+	},
+
+	ConfigDeepseekChat: {
+		ProviderType: ProviderDeepseek,
+		ModelName:    "deepseek-chat",
+	},
+	ConfigDeepseekCoder: {
+		ProviderType: ProviderDeepseek,
+		ModelName:    "deepseek-coder",
 	},
 }
