@@ -46,58 +46,38 @@ func NewDeepseekProvider(apiKey string) *Provider {
 }
 
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
-	msg := openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
-		Content: req.Message,
-	}
-	if req.Image != nil && len(*req.Image) > 0 {
-		b64Image := base64.StdEncoding.EncodeToString(*req.Image)
-		msg.MultiContent = []openai.ChatMessagePart{
-			{
-				Type: openai.ChatMessagePartTypeImageURL,
-				ImageURL: &openai.ChatMessageImageURL{
-					URL:    "data:image/png;base64," + b64Image,
-					Detail: openai.ImageURLDetailAuto,
-				},
-			},
-			{
-				Type: openai.ChatMessagePartTypeText,
-				Text: req.Message,
-			},
-		}
-		msg.Content = ""
-	}
+	msgs := inferReqToOpenAIMessages(req.Messages)
 
 	oaiReq := openai.ChatCompletionRequest{
-		Model:       req.Config.ModelName,
-		Messages:    []openai.ChatCompletionMessage{msg},
+		Model:       req.ModelConfig.ModelName,
+		Messages:    msgs,
 		MaxTokens:   req.MessageOptions.MaxTokens,
 		Temperature: req.MessageOptions.Temperature,
 	}
 
 	res, err := p.client.CreateChatCompletion(ctx, oaiReq)
 	if err != nil {
-		slog.Error("error from openai", "err", err, "req", req.Message, "model", req.Config.ModelName)
+		slog.Error("error from openai", "err", err, "req", req.Messages, "model", req.ModelConfig.ModelName)
 		return "", errors.Wrap(err, "openai chat completion error")
 	}
 
-	slog.Debug("got response from openai", "model", req.Config.ModelName, "res", res.Choices[0].Message.Content, "req", req.Message)
 	return res.Choices[0].Message.Content, nil
 }
 
-func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
-	outChan := make(chan llm.StreamDelta)
-	go func() {
-		defer close(outChan)
+func inferReqToOpenAIMessages(req []llm.InferMessage) []openai.ChatCompletionMessage {
+	msgs := make([]openai.ChatCompletionMessage, 0)
+
+	for _, m := range req {
 		msg := openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Content: req.Message,
+			Role:    m.Role,
+			Content: m.Content,
 		}
-		if req.Image != nil && len(*req.Image) > 0 {
-			b64Image := base64.StdEncoding.EncodeToString(*req.Image)
+		if m.Image != nil && len(*m.Image) > 0 {
+			b64Image := base64.StdEncoding.EncodeToString(*m.Image)
 			msg.MultiContent = []openai.ChatMessagePart{
 				{
 					Type: openai.ChatMessagePartTypeImageURL,
+					// TODO: support other image types
 					ImageURL: &openai.ChatMessageImageURL{
 						URL:    "data:image/png;base64," + b64Image,
 						Detail: openai.ImageURLDetailAuto,
@@ -105,22 +85,30 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 				},
 				{
 					Type: openai.ChatMessagePartTypeText,
-					Text: req.Message,
+					Text: m.Content,
 				},
 			}
 			msg.Content = ""
 		}
+	}
+	return msgs
+}
 
+func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
+	outChan := make(chan llm.StreamDelta)
+	go func() {
+		defer close(outChan)
+		msgs := inferReqToOpenAIMessages(req.Messages)
 		oaiReq := openai.ChatCompletionRequest{
-			Model:       req.Config.ModelName,
-			Messages:    []openai.ChatCompletionMessage{msg},
+			Model:       req.ModelConfig.ModelName,
+			Messages:    msgs,
 			MaxTokens:   req.MessageOptions.MaxTokens,
 			Temperature: req.MessageOptions.Temperature,
 		}
 
 		stream, err := p.client.CreateChatCompletionStream(ctx, oaiReq)
 		if err != nil {
-			slog.Error("error from openai", "err", err, "req", req.Message, "model", req.Config.ModelName)
+			slog.Error("error from openai", "err", err, "req", req.Messages, "model", req.ModelConfig.ModelName)
 			return
 		}
 		defer stream.Close()

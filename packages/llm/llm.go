@@ -20,10 +20,20 @@ type MessageOptions struct {
 	Temperature float32
 }
 
+type InferMessage struct {
+	Content string
+	Role    string
+	Image   *[]byte
+
+	ShouldCache bool
+}
+
 type InferRequest struct {
-	Message        string
-	Image          *[]byte
-	Config         ModelConfig
+	Messages []InferMessage
+
+	// ModelConfig describes the model to use for generating a response.
+	ModelConfig ModelConfig
+	// MessageOptions are options that can be passed to the model for generating a response.
 	MessageOptions MessageOptions
 }
 
@@ -37,7 +47,6 @@ type Responder interface {
 	GenerateResponseAsync(ctx context.Context, req InferRequest) (<-chan StreamDelta, error)
 }
 
-// ModelConfigStore is a simple in-memory store for model configurations.
 type ModelConfigStore struct {
 	configs map[string]ModelConfig
 }

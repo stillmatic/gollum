@@ -2,15 +2,18 @@ package anthropic
 
 import (
 	"context"
+	"encoding/base64"
 	"github.com/stillmatic/gollum/packages/llm"
 	"log/slog"
+	"slices"
 
-	"github.com/liushuangls/go-anthropic"
+	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/pkg/errors"
 )
 
 type Provider struct {
-	client *anthropic.Client
+	client       *anthropic.Client
+	cacheEnabled bool
 }
 
 func NewAnthropicProvider(apiKey string) *Provider {
@@ -19,18 +22,55 @@ func NewAnthropicProvider(apiKey string) *Provider {
 	}
 }
 
+func NewAnthropicProviderWithCache(apiKey string) *Provider {
+	client := anthropic.NewClient(apiKey, anthropic.WithBetaVersion(anthropic.BetaPromptCaching20240731))
+	return &Provider{
+		client:       client,
+		cacheEnabled: true,
+	}
+}
+
+func reqToMessages(req llm.InferRequest) ([]anthropic.Message, error) {
+	msgs := make([]anthropic.Message, 0)
+	for _, m := range req.Messages {
+		// only allow user and assistant roles
+		// TODO: this should be a little cleaner...
+		if !(slices.Index([]string{anthropic.RoleUser, anthropic.RoleAssistant}, m.Role) > -1) {
+			return nil, errors.New("invalid role")
+		}
+		content := make([]anthropic.MessageContent, 0)
+		txtContent := anthropic.NewTextMessageContent(m.Content)
+		// this will fail if the model is not configured to cache
+		if m.ShouldCache {
+			txtContent.SetCacheControl()
+		}
+		content = append(content, txtContent)
+		if m.Image != nil && len(*m.Image) > 0 {
+			b64Image := base64.StdEncoding.EncodeToString(*m.Image)
+			// TODO: support other image types
+			content = append(content, anthropic.NewImageMessageContent(
+				anthropic.MessageContentImageSource{Type: "base64", MediaType: "image/png", Data: b64Image}))
+		}
+		newMsg := anthropic.Message{
+			Role:    m.Role,
+			Content: content,
+		}
+
+		msgs = append(msgs, newMsg)
+	}
+
+	return msgs, nil
+}
+
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
+	msgs, err := reqToMessages(req)
+	if err != nil {
+		return "", errors.Wrap(err, "invalid messages")
+	}
 	res, err := p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
 		MessagesRequest: anthropic.MessagesRequest{
-			Model: req.Config.ModelName,
-			Messages: []anthropic.Message{
-				{
-					Role: anthropic.RoleUser,
-					Content: []anthropic.MessageContent{
-						anthropic.NewTextMessageContent(req.Message),
-					},
-				},
-			},
+			Model:       req.ModelConfig.ModelName,
+			Messages:    msgs,
 			MaxTokens:   req.MessageOptions.MaxTokens,
 			Temperature: &req.MessageOptions.Temperature,
 		},
@@ -39,7 +79,6 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 		return "", errors.Wrap(err, "anthropic messages stream error")
 	}
 
-	slog.Debug("got response from anthropic", "model", res.Model, "res", res.GetFirstContentText(), "req", req.Message)
 	return res.GetFirstContentText(), nil
 }
 
@@ -47,22 +86,21 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 	outChan := make(chan llm.StreamDelta)
 	go func() {
 		defer close(outChan)
-		_, err := p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
+		msgs, err := reqToMessages(req)
+		if err != nil {
+			slog.Error("invalid messages", "err", err)
+			return
+		}
+
+		_, err = p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
 			MessagesRequest: anthropic.MessagesRequest{
-				Model: req.Config.ModelName,
-				Messages: []anthropic.Message{
-					{
-						Role: anthropic.RoleUser,
-						Content: []anthropic.MessageContent{
-							anthropic.NewTextMessageContent(req.Message),
-						},
-					},
-				},
+				Model:       req.ModelConfig.ModelName,
+				Messages:    msgs,
 				MaxTokens:   req.MessageOptions.MaxTokens,
 				Temperature: &req.MessageOptions.Temperature,
 			},
 			OnContentBlockDelta: func(data anthropic.MessagesEventContentBlockDeltaData) {
-				if data.Delta.Text == "" {
+				if data.Delta.Text == nil {
 					outChan <- llm.StreamDelta{
 						EOF: true,
 					}
@@ -70,7 +108,7 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 				}
 
 				outChan <- llm.StreamDelta{
-					Text: data.Delta.Text,
+					Text: *data.Delta.Text,
 				}
 			},
 		})
