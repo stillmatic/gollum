@@ -149,28 +149,41 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 	if len(req.Messages) > 1 {
 		return p.generateResponseChat(ctx, req)
 	}
-	anyCache := false
 
-	// TODO: should we handle multiple cached messages?
-	// This is helpful for chat conversations, but isn't chat cringe?
-	// It's trivial to cache multiple messages in the same CachedContent object
-	// but how do we do retrieval of the cached object?
-	// I guess we could build a trie, indexed on hashes of each message?
-	var messageToCache llm.InferMessage
+	// it is slightly better to build a trie, indexed on hashes of each message
+	// since we can quickly get based on the prefix (i.e. existing messages)
+	// but ... your number of messages is probably not THAT high to justify the complexity.
+	messagesToCache := make([]llm.InferMessage, 0)
 	for _, message := range req.Messages {
 		if message.ShouldCache {
-			anyCache = true
-			messageToCache = message
+			messagesToCache = append(messagesToCache, message)
 		}
 	}
 	model := p.getModel(req)
-	if anyCache {
-		// cache the messages
-		cc, err := p.createCachedContent(ctx, messageToCache.Content, req.ModelConfig.ModelName)
-		if err != nil {
-			return "", errors.Wrap(err, "google upload file error")
+	if len(messagesToCache) > 0 {
+		// hash the messages and check if the overall object is cached.
+		// we choose to do this because you may have a later message identical to an earlier message
+		// if we find exact match for this set of messages, load it.
+		hashKeys := make([]string, 0, len(messagesToCache))
+		for _, message := range messagesToCache {
+			// it is possible to have collision between user + assistant content being identical
+			// this feels like a rare case especially given that we are ordering sensitive in the hash.
+			hashKeys = append(hashKeys, getHash(message.Content))
 		}
-		model = p.client.GenerativeModelFromCachedContent(cc)
+		joinedKey := strings.Join(hashKeys, "/")
+		var cachedContent *genai.CachedContent
+		// if the cached object exists, load it
+		if _, ok := p.cachedContentMap[joinedKey]; ok {
+			cachedContent, _ = p.client.GetCachedContent(ctx, joinedKey)
+			model = p.client.GenerativeModelFromCachedContent(cachedContent)
+		} else {
+			// otherwise, create a new cached object
+			cc, err := p.createCachedContent(ctx, joinedKey, req.ModelConfig.ModelName)
+			if err != nil {
+				return "", errors.Wrap(err, "google upload file error")
+			}
+			model = p.client.GenerativeModelFromCachedContent(cc)
+		}
 	}
 
 	parts := singleTurnMessageToParts(req.Messages[0])
