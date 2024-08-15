@@ -149,6 +149,8 @@ github.com/spaolacci/murmur3 v1.1.0 h1:7c1g84S4BPRrfL5Xrdp6fOJ206sU9y293DDHaoy0b
 github.com/spaolacci/murmur3 v1.1.0/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/stillmatic/go-anthropic/v2 v2.0.0-20240814191536-b609db6bb8b9 h1:/Il9Yw1rVjT2SxpXWHUNR7k5Ggc09zNscxm4oElsXnE=
 github.com/stillmatic/go-anthropic/v2 v2.0.0-20240814191536-b609db6bb8b9/go.mod h1:8BKv/fkeTaL5R9R9bGkaknYBueyw2WxY20o7bImbOek=
+github.com/stillmatic/go-anthropic/v2 v2.0.0-20240815122917-f3e1d690020d h1:PxHEctrE5kmQ/2i0DWIkMBziZ/XrJY3J/4oaT2kK5EE=
+github.com/stillmatic/go-anthropic/v2 v2.0.0-20240815122917-f3e1d690020d/go.mod h1:8BKv/fkeTaL5R9R9bGkaknYBueyw2WxY20o7bImbOek=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=

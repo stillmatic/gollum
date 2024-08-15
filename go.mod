@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/antonmedv/expr v1.15.3
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/chewxy/math32 v1.10.1
 	github.com/google/generative-ai-go v0.17.0
 	github.com/google/uuid v1.6.0
@@ -30,7 +31,6 @@ require (
 	cloud.google.com/go/longrunning v0.5.7 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -67,4 +67,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/liushuangls/go-anthropic/v2 => github.com/stillmatic/go-anthropic/v2 v2.0.0-20240814191536-b609db6bb8b9
+replace github.com/liushuangls/go-anthropic/v2 => github.com/stillmatic/go-anthropic/v2 v2.0.0-20240815122917-f3e1d690020d
