@@ -4,13 +4,14 @@ go 1.22
 
 require (
 	github.com/antonmedv/expr v1.15.3
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/chewxy/math32 v1.10.1
 	github.com/google/generative-ai-go v0.17.0
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.17.2
-	github.com/liushuangls/go-anthropic/v2 v2.4.1
+	github.com/liushuangls/go-anthropic/v2 v2.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/sashabaranov/go-openai v1.28.1
@@ -30,7 +31,6 @@ require (
 	cloud.google.com/go/longrunning v0.5.7 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
