@@ -90,6 +90,7 @@ func inferReqToOpenAIMessages(req []llm.InferMessage) []openai.ChatCompletionMes
 			}
 			msg.Content = ""
 		}
+		msgs = append(msgs, msg)
 	}
 	return msgs
 }
