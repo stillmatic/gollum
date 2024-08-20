@@ -49,7 +49,7 @@ type Responder interface {
 
 type EmbedRequest struct {
 	Input []string
-	Image *[]byte
+	Image []byte
 
 	ModelConfig ModelConfig
 	// only supported for openai (matryoshka) models
