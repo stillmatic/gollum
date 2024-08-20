@@ -11,8 +11,9 @@ const (
 	ProviderDeepseek   ProviderType = "deepseek"
 )
 
-// configs that are user declared, here's some useful defaults
+// configs are user declared, here's some useful defaults
 const (
+	// LLM models
 	ConfigClaude3Dot5Sonnet = "claude-3.5-sonnet"
 	ConfigGPT4Mini          = "gpt-4-mini"
 	ConfigGPT4o             = "gpt-4o"
@@ -36,6 +37,13 @@ const (
 
 	ConfigDeepseekChat  = "deepseek-chat"
 	ConfigDeepseekCoder = "deepseek-coder"
+
+	// Embedding models
+	ConfigOpenAITextEmbedding3Small = "openai-text-embedding-3-small"
+	ConfigOpenAITextEmbedding3Large = "openai-text-embedding-3-large"
+	ConfigOpenAITextEmbeddingAda002 = "openai-text-embedding-ada-002"
+
+	ConfigGeminiTextEmbedding4 = "gemini-text-embedding-004"
 )
 
 var configs = map[string]ModelConfig{
@@ -111,5 +119,23 @@ var configs = map[string]ModelConfig{
 	ConfigDeepseekCoder: {
 		ProviderType: ProviderDeepseek,
 		ModelName:    "deepseek-coder",
+	},
+
+	ConfigOpenAITextEmbedding3Small: {
+		ProviderType: ProviderOpenAI,
+		ModelName:    "text-embedding-3-small",
+	},
+	ConfigOpenAITextEmbedding3Large: {
+		ProviderType: ProviderOpenAI,
+		ModelName:    "text-embedding-3-large",
+	},
+	ConfigOpenAITextEmbeddingAda002: {
+		ProviderType: ProviderOpenAI,
+		ModelName:    "text-embedding-ada-002",
+	},
+
+	ConfigGeminiTextEmbedding4: {
+		ProviderType: ProviderGoogle,
+		ModelName:    "text-embedding-004",
 	},
 }
