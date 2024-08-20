@@ -3,7 +3,7 @@ module github.com/stillmatic/gollum
 go 1.22
 
 require (
-	github.com/antonmedv/expr v1.15.3
+	github.com/antonmedv/expr v1.16.9
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/chewxy/math32 v1.10.1
 	github.com/google/generative-ai-go v0.17.0
