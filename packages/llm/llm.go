@@ -65,5 +65,5 @@ type EmbeddingResponse struct {
 }
 
 type Embedder interface {
-	GenerateEmbedding(ctx context.Context, req EmbedRequest) (Embedding, error)
+	GenerateEmbedding(ctx context.Context, req EmbedRequest) (*EmbeddingResponse, error)
 }
