@@ -45,8 +45,8 @@ func reqToMessages(req llm.InferRequest) ([]anthropic.Message, error) {
 			txtContent.SetCacheControl()
 		}
 		content = append(content, txtContent)
-		if m.Image != nil && len(*m.Image) > 0 {
-			b64Image := base64.StdEncoding.EncodeToString(*m.Image)
+		if m.Image != nil && len(m.Image) > 0 {
+			b64Image := base64.StdEncoding.EncodeToString(m.Image)
 			// TODO: support other image types
 			content = append(content, anthropic.NewImageMessageContent(
 				anthropic.MessageContentImageSource{Type: "base64", MediaType: "image/png", Data: b64Image}))

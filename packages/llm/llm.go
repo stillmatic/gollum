@@ -23,7 +23,7 @@ type MessageOptions struct {
 type InferMessage struct {
 	Content string
 	Role    string
-	Image   *[]byte
+	Image   []byte
 
 	ShouldCache bool
 }
@@ -47,35 +47,23 @@ type Responder interface {
 	GenerateResponseAsync(ctx context.Context, req InferRequest) (<-chan StreamDelta, error)
 }
 
-type ModelConfigStore struct {
-	configs map[string]ModelConfig
+type EmbedRequest struct {
+	Input []string
+	Image *[]byte
+
+	ModelConfig ModelConfig
+	// only supported for openai (matryoshka) models
+	Dimensions int
 }
 
-func NewModelConfigStore() *ModelConfigStore {
-	return &ModelConfigStore{
-		configs: configs,
-	}
+type Embedding struct {
+	Values []float32
 }
 
-func NewModelConfigStoreWithConfigs(configs map[string]ModelConfig) *ModelConfigStore {
-	return &ModelConfigStore{
-		configs: configs,
-	}
+type EmbeddingResponse struct {
+	Data []Embedding
 }
 
-func (m *ModelConfigStore) GetConfig(configName string) (ModelConfig, bool) {
-	config, ok := m.configs[configName]
-	return config, ok
-}
-
-func (m *ModelConfigStore) GetConfigNames() []string {
-	var configNames []string
-	for k := range m.configs {
-		configNames = append(configNames, k)
-	}
-	return configNames
-}
-
-func (m *ModelConfigStore) AddConfig(configName string, config ModelConfig) {
-	m.configs[configName] = config
+type Embedder interface {
+	GenerateEmbedding(ctx context.Context, req EmbedRequest) (Embedding, error)
 }

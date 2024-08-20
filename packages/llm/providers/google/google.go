@@ -199,8 +199,8 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 
 func singleTurnMessageToParts(message llm.InferMessage) []genai.Part {
 	parts := []genai.Part{genai.Text(message.Content)}
-	if message.Image != nil && len(*message.Image) > 0 {
-		parts = append(parts, genai.ImageData("png", *message.Image))
+	if message.Image != nil && len(message.Image) > 0 {
+		parts = append(parts, genai.ImageData("png", message.Image))
 	}
 	return parts
 }
@@ -209,8 +209,8 @@ func multiTurnMessageToParts(messages []llm.InferMessage) []*genai.Content {
 	hist := make([]*genai.Content, 0, len(messages))
 	for _, message := range messages {
 		parts := []genai.Part{genai.Text(message.Content)}
-		if message.Image != nil && len(*message.Image) > 0 {
-			parts = append(parts, genai.ImageData("png", *message.Image))
+		if message.Image != nil && len(message.Image) > 0 {
+			parts = append(parts, genai.ImageData("png", message.Image))
 		}
 		hist = append(hist, &genai.Content{
 			Parts: parts,
@@ -339,4 +339,45 @@ func flattenResponse(resp *genai.GenerateContentResponse) string {
 		}
 	}
 	return rtn.String()
+}
+
+// GenerateEmbedding generates embeddings for the given input.
+//
+// NB chua: This is a confusing method in the docs.
+// - There are two separate API methods and it's unclear which you should use. Is batch with 1 the same as single?
+// - What's the maximum number of docs to embed at once?
+// - TaskType is automatically set..? I don't see how to configure it ...?
+// see also https://pkg.go.dev/github.com/google/generative-ai-go/genai#TaskType
+func (p *Provider) GenerateEmbedding(ctx context.Context, req llm.EmbedRequest) (*llm.EmbeddingResponse, error) {
+	em := p.client.EmbeddingModel(req.ModelConfig.ModelName)
+
+	// if there is only one input, use the single API
+	if len(req.Input) == 1 {
+		resp, err := em.EmbedContent(ctx, genai.Text(req.Input[0]))
+		if err != nil {
+			return nil, errors.Wrap(err, "google embedding error")
+		}
+
+		return &llm.EmbeddingResponse{Data: []llm.Embedding{{Values: resp.Embedding.Values}}}, nil
+	}
+	// otherwise, use the batch API. I'm not sure there's much difference though...
+	batchReq := em.NewBatch()
+	for _, input := range req.Input {
+		batchReq.AddContent(genai.Text(input))
+	}
+	resp, err := em.BatchEmbedContents(ctx, batchReq)
+	if err != nil {
+		return nil, errors.Wrap(err, "google batch embedding error")
+	}
+
+	respVectors := make([]llm.Embedding, len(resp.Embeddings))
+	for i, v := range resp.Embeddings {
+		respVectors[i] = llm.Embedding{
+			Values: v.Values,
+		}
+	}
+
+	return &llm.EmbeddingResponse{
+		Data: respVectors,
+	}, nil
 }

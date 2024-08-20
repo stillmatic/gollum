@@ -72,8 +72,8 @@ func inferReqToOpenAIMessages(req []llm.InferMessage) []openai.ChatCompletionMes
 			Role:    m.Role,
 			Content: m.Content,
 		}
-		if m.Image != nil && len(*m.Image) > 0 {
-			b64Image := base64.StdEncoding.EncodeToString(*m.Image)
+		if m.Image != nil && len(m.Image) > 0 {
+			b64Image := base64.StdEncoding.EncodeToString(m.Image)
 			msg.MultiContent = []openai.ChatMessagePart{
 				{
 					Type: openai.ChatMessagePartTypeImageURL,
@@ -141,4 +141,30 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 	}()
 
 	return outChan, nil
+}
+
+func (p *Provider) GenerateEmbedding(ctx context.Context, req llm.EmbedRequest) (*llm.EmbeddingResponse, error) {
+	// TODO: this only supports openai models, not other providers using the same interface
+	oaiReq := openai.EmbeddingRequest{
+		Input:      req.Input,
+		Model:      openai.EmbeddingModel(req.ModelConfig.ModelName),
+		Dimensions: req.Dimensions,
+	}
+
+	res, err := p.client.CreateEmbeddings(ctx, oaiReq)
+	if err != nil {
+		slog.Error("error from openai", "err", err, "req", req.Input, "model", req.ModelConfig.ModelName)
+		return nil, errors.Wrap(err, "openai embedding error")
+	}
+
+	respVectors := make([]llm.Embedding, len(res.Data))
+	for i, v := range res.Data {
+		respVectors[i] = llm.Embedding{
+			Values: v.Embedding,
+		}
+	}
+
+	return &llm.EmbeddingResponse{
+		Data: respVectors,
+	}, nil
 }
