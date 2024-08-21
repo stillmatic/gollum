@@ -5,18 +5,19 @@ import (
 	"testing"
 
 	. "github.com/stillmatic/gollum"
+	"github.com/stillmatic/gollum/packages/docstore"
 	"github.com/stretchr/testify/assert"
 	"gocloud.dev/blob/fileblob"
 )
 
 func TestMemoryDocStore(t *testing.T) {
 	ctx := context.Background()
-	store := NewMemoryDocStore()
+	store := docstore.NewMemoryDocStore()
 	doc := Document{ID: "1", Content: "test data"}
 	doc2 := Document{ID: "2", Content: "test data 2"}
 
 	// ensure store implements the DocStore interface
-	var _ DocStore = store
+	var _ docstore.DocStore = store
 
 	t.Run("Insert document", func(t *testing.T) {
 		err := store.Insert(ctx, doc)
@@ -48,7 +49,7 @@ func TestMemoryDocStore(t *testing.T) {
 		// load from testdata/docstore.json
 		bucket, err := fileblob.OpenBucket("testdata", nil)
 		assert.NoError(t, err)
-		loadedStore, err := NewMemoryDocStoreFromDisk(ctx, bucket, "docstore.json")
+		loadedStore, err := docstore.NewMemoryDocStoreFromDisk(ctx, bucket, "docstore.json")
 		assert.NoError(t, err)
 		assert.Equal(t, store, loadedStore)
 	})
