@@ -2,25 +2,34 @@ package cached
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/stillmatic/gollum/packages/llm"
 	"log"
 
+	"hash"
 	_ "modernc.org/sqlite"
 )
 
 // CachedResponder implements the Responder interface with caching
+// TODO: add a Cache interface to allow for different cache implementations
 type CachedResponder struct {
-	underlying llm.Responder
-	db         *sql.DB
+	underlying   llm.Responder
+	db           *sql.DB
+	hasher       hash.Hash
+	numRequests  int
+	numCacheHits int
 }
 
 // CachedEmbedder implements the llm.Embedder interface with caching
 type CachedEmbedder struct {
-	underlying llm.Embedder
-	db         *sql.DB
+	underlying   llm.Embedder
+	db           *sql.DB
+	hasher       hash.Hash
+	numRequests  int
+	numCacheHits int
 }
 
 // NewLocalCachedResponder creates a new CachedResponder with a local SQLite cache
@@ -35,9 +44,14 @@ func NewLocalCachedResponder(underlying llm.Responder, dbPath string) (*CachedRe
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
+	// we use sha256 to avoid pulling down the xxhash dep if you don't need to
+	// these are small strings to cache so shouldn't make a big diff
+	hasher := sha256.New()
+
 	return &CachedResponder{
 		underlying: underlying,
 		db:         db,
+		hasher:     hasher,
 	}, nil
 }
 
@@ -55,6 +69,7 @@ func NewLocalCachedEmbedder(underlying llm.Embedder, dbPath string) (*CachedEmbe
 	return &CachedEmbedder{
 		underlying: underlying,
 		db:         db,
+		hasher:     sha256.New(),
 	}, nil
 }
 
@@ -66,6 +81,8 @@ func initResponderDB(db *sql.DB) error {
 			response TEXT
 		);
 	`)
+	// set to WAL mode for better performance
+	_, err = db.Exec("PRAGMA journal_mode=WAL;")
 	return err
 }
 
@@ -77,6 +94,7 @@ func initEmbedderDB(db *sql.DB) error {
 			response BLOB
 		);
 	`)
+	_, err = db.Exec("PRAGMA journal_mode=WAL;")
 	return err
 }
 
@@ -108,16 +126,20 @@ func (cr *CachedResponder) GenerateResponseAsync(ctx context.Context, req llm.In
 }
 
 func (cr *CachedResponder) getCachedResponse(req llm.InferRequest) (string, error) {
+	cr.numRequests++
 	requestJSON, err := json.Marshal(req)
 	if err != nil {
 		return "", err
 	}
 
+	hashedRequest := cr.hasher.Sum(requestJSON)
+
 	var response string
-	err = cr.db.QueryRow("SELECT response FROM response_cache WHERE request = ?", requestJSON).Scan(&response)
+	err = cr.db.QueryRow("SELECT response FROM response_cache WHERE request = ?", hashedRequest).Scan(&response)
 	if err != nil {
 		return "", err
 	}
+	cr.numCacheHits++
 
 	return response, nil
 }
@@ -127,13 +149,18 @@ func (cr *CachedResponder) cacheResponse(req llm.InferRequest, response string) 
 	if err != nil {
 		return err
 	}
+	hashedRequest := cr.hasher.Sum(requestJSON)
 
-	_, err = cr.db.Exec("INSERT INTO response_cache (request, response) VALUES (?, ?)", requestJSON, response)
+	_, err = cr.db.Exec("INSERT INTO response_cache (request, response) VALUES (?, ?)", hashedRequest, response)
 	return err
 }
 
 func (cr *CachedResponder) Close() error {
 	return cr.db.Close()
+}
+
+func (cr *CachedResponder) GetCacheStats() (int, int) {
+	return cr.numRequests, cr.numCacheHits
 }
 
 func (ce *CachedEmbedder) GenerateEmbedding(ctx context.Context, req llm.EmbedRequest) (*llm.EmbeddingResponse, error) {
@@ -158,17 +185,19 @@ func (ce *CachedEmbedder) GenerateEmbedding(ctx context.Context, req llm.EmbedRe
 }
 
 func (ce *CachedEmbedder) getCachedEmbedding(req llm.EmbedRequest) (*llm.EmbeddingResponse, error) {
+	ce.numRequests++
 	requestJSON, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
+	hashedRequest := ce.hasher.Sum(requestJSON)
 
 	var responseJSON []byte
-	err = ce.db.QueryRow("SELECT response FROM embedding_cache WHERE request = ?", requestJSON).Scan(&responseJSON)
+	err = ce.db.QueryRow("SELECT response FROM embedding_cache WHERE request = ?", hashedRequest).Scan(&responseJSON)
 	if err != nil {
 		return nil, err
 	}
-
+	ce.numCacheHits++
 	var embedding llm.EmbeddingResponse
 	err = json.Unmarshal(responseJSON, &embedding)
 	if err != nil {
@@ -189,10 +218,16 @@ func (ce *CachedEmbedder) cacheEmbedding(req llm.EmbedRequest, embedding *llm.Em
 		return err
 	}
 
-	_, err = ce.db.Exec("INSERT INTO embedding_cache (request, response) VALUES (?, ?)", requestJSON, responseJSON)
+	hashedRequest := ce.hasher.Sum(requestJSON)
+
+	_, err = ce.db.Exec("INSERT INTO embedding_cache (request, response) VALUES (?, ?)", hashedRequest, responseJSON)
 	return err
 }
 
 func (ce *CachedEmbedder) Close() error {
 	return ce.db.Close()
+}
+
+func (ce *CachedEmbedder) GetCacheStats() (int, int) {
+	return ce.numRequests, ce.numCacheHits
 }

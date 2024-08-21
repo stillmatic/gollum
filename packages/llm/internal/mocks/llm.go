@@ -6,37 +6,37 @@ package mock_llm
 
 import (
 	context "context"
-	"github.com/stillmatic/gollum/packages/llm"
 	reflect "reflect"
 
+	llm "github.com/stillmatic/gollum/packages/llm"
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockLLMProvider is a mock of LLMProvider interface.
-type MockLLMProvider struct {
+// MockResponder is a mock of Responder interface.
+type MockResponder struct {
 	ctrl     *gomock.Controller
-	recorder *MockLLMProviderMockRecorder
+	recorder *MockResponderMockRecorder
 }
 
-// MockLLMProviderMockRecorder is the mock recorder for MockLLMProvider.
-type MockLLMProviderMockRecorder struct {
-	mock *MockLLMProvider
+// MockResponderMockRecorder is the mock recorder for MockResponder.
+type MockResponderMockRecorder struct {
+	mock *MockResponder
 }
 
-// NewMockLLMProvider creates a new mock instance.
-func NewMockLLMProvider(ctrl *gomock.Controller) *MockLLMProvider {
-	mock := &MockLLMProvider{ctrl: ctrl}
-	mock.recorder = &MockLLMProviderMockRecorder{mock}
+// NewMockResponder creates a new mock instance.
+func NewMockResponder(ctrl *gomock.Controller) *MockResponder {
+	mock := &MockResponder{ctrl: ctrl}
+	mock.recorder = &MockResponderMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockLLMProvider) EXPECT() *MockLLMProviderMockRecorder {
+func (m *MockResponder) EXPECT() *MockResponderMockRecorder {
 	return m.recorder
 }
 
 // GenerateResponse mocks base method.
-func (m *MockLLMProvider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
+func (m *MockResponder) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateResponse", ctx, req)
 	ret0, _ := ret[0].(string)
@@ -45,13 +45,13 @@ func (m *MockLLMProvider) GenerateResponse(ctx context.Context, req llm.InferReq
 }
 
 // GenerateResponse indicates an expected call of GenerateResponse.
-func (mr *MockLLMProviderMockRecorder) GenerateResponse(ctx, req interface{}) *gomock.Call {
+func (mr *MockResponderMockRecorder) GenerateResponse(ctx, req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateResponse", reflect.TypeOf((*MockLLMProvider)(nil).GenerateResponse), ctx, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateResponse", reflect.TypeOf((*MockResponder)(nil).GenerateResponse), ctx, req)
 }
 
 // GenerateResponseAsync mocks base method.
-func (m *MockLLMProvider) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
+func (m *MockResponder) GenerateResponseAsync(ctx context.Context, req llm.InferRequest) (<-chan llm.StreamDelta, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateResponseAsync", ctx, req)
 	ret0, _ := ret[0].(<-chan llm.StreamDelta)
@@ -60,7 +60,45 @@ func (m *MockLLMProvider) GenerateResponseAsync(ctx context.Context, req llm.Inf
 }
 
 // GenerateResponseAsync indicates an expected call of GenerateResponseAsync.
-func (mr *MockLLMProviderMockRecorder) GenerateResponseAsync(ctx, req interface{}) *gomock.Call {
+func (mr *MockResponderMockRecorder) GenerateResponseAsync(ctx, req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateResponseAsync", reflect.TypeOf((*MockLLMProvider)(nil).GenerateResponseAsync), ctx, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateResponseAsync", reflect.TypeOf((*MockResponder)(nil).GenerateResponseAsync), ctx, req)
+}
+
+// MockEmbedder is a mock of Embedder interface.
+type MockEmbedder struct {
+	ctrl     *gomock.Controller
+	recorder *MockEmbedderMockRecorder
+}
+
+// MockEmbedderMockRecorder is the mock recorder for MockEmbedder.
+type MockEmbedderMockRecorder struct {
+	mock *MockEmbedder
+}
+
+// NewMockEmbedder creates a new mock instance.
+func NewMockEmbedder(ctrl *gomock.Controller) *MockEmbedder {
+	mock := &MockEmbedder{ctrl: ctrl}
+	mock.recorder = &MockEmbedderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockEmbedder) EXPECT() *MockEmbedderMockRecorder {
+	return m.recorder
+}
+
+// GenerateEmbedding mocks base method.
+func (m *MockEmbedder) GenerateEmbedding(ctx context.Context, req llm.EmbedRequest) (*llm.EmbeddingResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateEmbedding", ctx, req)
+	ret0, _ := ret[0].(*llm.EmbeddingResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateEmbedding indicates an expected call of GenerateEmbedding.
+func (mr *MockEmbedderMockRecorder) GenerateEmbedding(ctx, req interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateEmbedding", reflect.TypeOf((*MockEmbedder)(nil).GenerateEmbedding), ctx, req)
 }
