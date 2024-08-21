@@ -51,6 +51,10 @@ type EmbedRequest struct {
 	Input []string
 	Image []byte
 
+	// Prompt is an instruction applied to all the input strings in this request.
+	// Ignored unless the model specifically supports it
+	Prompt string
+
 	ModelConfig ModelConfig
 	// only supported for openai (matryoshka) models
 	Dimensions int

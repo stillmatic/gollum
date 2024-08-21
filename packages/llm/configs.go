@@ -9,6 +9,9 @@ const (
 	ProviderTogether   ProviderType = "together"
 	ProviderHyperbolic ProviderType = "hyperbolic"
 	ProviderDeepseek   ProviderType = "deepseek"
+
+	ProviderVoyage     ProviderType = "voyage"
+	ProviderMixedBread ProviderType = "mixedbread"
 )
 
 // configs are user declared, here's some useful defaults
@@ -44,6 +47,9 @@ const (
 	ConfigOpenAITextEmbeddingAda002 = "openai-text-embedding-ada-002"
 
 	ConfigGeminiTextEmbedding4 = "gemini-text-embedding-004"
+
+	ConfigMxbaiEmbedLargeV1    = "mxbai-embed-large-v1"
+	ConfigVoyageLarge2Instruct = "voyage-large-2-instruct"
 )
 
 var configs = map[string]ModelConfig{
@@ -137,5 +143,15 @@ var configs = map[string]ModelConfig{
 	ConfigGeminiTextEmbedding4: {
 		ProviderType: ProviderGoogle,
 		ModelName:    "text-embedding-004",
+	},
+
+	ConfigMxbaiEmbedLargeV1: {
+		ProviderType: ProviderMixedBread,
+		ModelName:    "mxbai-embed-large-v1",
+	},
+
+	ConfigVoyageLarge2Instruct: {
+		ProviderType: ProviderVoyage,
+		ModelName:    "voyage-large-2-instruct",
 	},
 }
