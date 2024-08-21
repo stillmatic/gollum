@@ -90,10 +90,15 @@ func initEmbedderDB(db *sql.DB) error {
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS embedding_cache (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			request BLOB,
-			response BLOB
+			model_config TEXT,
+			input_string TEXT,
+			embedding BLOB,
+			UNIQUE(model_config, input_string)
 		);
 	`)
+	if err != nil {
+		return err
+	}
 	_, err = db.Exec("PRAGMA journal_mode=WAL;")
 	return err
 }
@@ -164,63 +169,89 @@ func (cr *CachedResponder) GetCacheStats() (int, int) {
 }
 
 func (ce *CachedEmbedder) GenerateEmbedding(ctx context.Context, req llm.EmbedRequest) (*llm.EmbeddingResponse, error) {
-	// Check cache
-	cachedEmbedding, err := ce.getCachedEmbedding(req)
-	if err == nil {
-		return cachedEmbedding, nil
+	cachedEmbeddings := make([]llm.Embedding, 0, len(req.Input))
+	uncachedIndices := make([]int, 0)
+	uncachedInputs := make([]string, 0)
+
+	// Check cache for each input string
+	for i, input := range req.Input {
+		// we use ModelName as a key, I think it's fine
+		embedding, err := ce.getCachedEmbedding(req.ModelConfig.ModelName, input)
+		if err == nil {
+			cachedEmbeddings = append(cachedEmbeddings, llm.Embedding{embedding})
+		} else {
+			uncachedIndices = append(uncachedIndices, i)
+			uncachedInputs = append(uncachedInputs, input)
+		}
 	}
 
-	// If not in cache, call underlying embedder
-	embedding, err := ce.underlying.GenerateEmbedding(ctx, req)
+	// If all embeddings were cached, return immediately
+	if len(uncachedInputs) == 0 {
+		return &llm.EmbeddingResponse{
+			Data: cachedEmbeddings,
+		}, nil
+	}
+
+	// Generate embeddings for uncached inputs
+	uncachedReq := llm.EmbedRequest{
+		ModelConfig: req.ModelConfig,
+		Input:       uncachedInputs,
+	}
+	uncachedResponse, err := ce.underlying.GenerateEmbedding(ctx, uncachedReq)
 	if err != nil {
 		return nil, err
 	}
 
-	// Cache the result
-	if err := ce.cacheEmbedding(req, embedding); err != nil {
-		log.Printf("Failed to cache embedding: %v", err)
+	// Cache the new embeddings
+	for i, embedding := range uncachedResponse.Data {
+		if err := ce.cacheEmbedding(req.ModelConfig.ModelName, uncachedInputs[i], embedding.Values); err != nil {
+			log.Printf("Failed to cache embedding: %v", err)
+		}
+	}
+
+	// Merge cached and new embeddings
+	finalEmbeddings := make([]llm.Embedding, len(req.Input))
+	cachedIndex, uncachedIndex := 0, 0
+	for i := range req.Input {
+		if contains(uncachedIndices, i) {
+			finalEmbeddings[i] = uncachedResponse.Data[uncachedIndex]
+			uncachedIndex++
+		} else {
+			finalEmbeddings[i] = cachedEmbeddings[cachedIndex]
+			cachedIndex++
+		}
+	}
+
+	return &llm.EmbeddingResponse{
+		Data: finalEmbeddings,
+	}, nil
+}
+
+func (ce *CachedEmbedder) getCachedEmbedding(modelConfig string, input string) ([]float32, error) {
+	ce.numRequests++
+	var embeddingBlob []byte
+	err := ce.db.QueryRow("SELECT embedding FROM embedding_cache WHERE model_config = ? AND input_string = ?", modelConfig, input).Scan(&embeddingBlob)
+	if err != nil {
+		return nil, err
+	}
+	ce.numCacheHits++
+
+	var embedding []float32
+	err = json.Unmarshal(embeddingBlob, &embedding)
+	if err != nil {
+		return nil, err
 	}
 
 	return embedding, nil
 }
 
-func (ce *CachedEmbedder) getCachedEmbedding(req llm.EmbedRequest) (*llm.EmbeddingResponse, error) {
-	ce.numRequests++
-	requestJSON, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-	hashedRequest := ce.hasher.Sum(requestJSON)
-
-	var responseJSON []byte
-	err = ce.db.QueryRow("SELECT response FROM embedding_cache WHERE request = ?", hashedRequest).Scan(&responseJSON)
-	if err != nil {
-		return nil, err
-	}
-	ce.numCacheHits++
-	var embedding llm.EmbeddingResponse
-	err = json.Unmarshal(responseJSON, &embedding)
-	if err != nil {
-		return nil, err
-	}
-
-	return &embedding, nil
-}
-
-func (ce *CachedEmbedder) cacheEmbedding(req llm.EmbedRequest, embedding *llm.EmbeddingResponse) error {
-	requestJSON, err := json.Marshal(req)
+func (ce *CachedEmbedder) cacheEmbedding(modelConfig string, input string, embedding []float32) error {
+	embeddingBlob, err := json.Marshal(embedding)
 	if err != nil {
 		return err
 	}
 
-	responseJSON, err := json.Marshal(embedding)
-	if err != nil {
-		return err
-	}
-
-	hashedRequest := ce.hasher.Sum(requestJSON)
-
-	_, err = ce.db.Exec("INSERT INTO embedding_cache (request, response) VALUES (?, ?)", hashedRequest, responseJSON)
+	_, err = ce.db.Exec("INSERT OR REPLACE INTO embedding_cache (model_config, input_string, embedding) VALUES (?, ?, ?)", modelConfig, input, embeddingBlob)
 	return err
 }
 
@@ -230,4 +261,13 @@ func (ce *CachedEmbedder) Close() error {
 
 func (ce *CachedEmbedder) GetCacheStats() (int, int) {
 	return ce.numRequests, ce.numCacheHits
+}
+
+func contains(slice []int, val int) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
 }
