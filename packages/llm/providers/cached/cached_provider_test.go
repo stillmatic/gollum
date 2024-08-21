@@ -2,12 +2,13 @@ package cached_test
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stillmatic/gollum/packages/llm"
 	mock_llm "github.com/stillmatic/gollum/packages/llm/internal/mocks"
 	"github.com/stillmatic/gollum/packages/llm/providers/cached"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"testing"
 )
 
 func TestCachedProvider(t *testing.T) {
@@ -35,17 +36,17 @@ func TestCachedProvider(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "hello user", resp)
 
-		numReqs, numHits := cachedProvider.GetCacheStats()
-		assert.Equal(t, 1, numReqs)
-		assert.Equal(t, 0, numHits)
+		cs := cachedProvider.GetCacheStats()
+		assert.Equal(t, 1, cs.NumRequests)
+		assert.Equal(t, 0, cs.NumCacheHits)
 
 		resp, err = cachedProvider.GenerateResponse(ctx, req)
 		assert.NoError(t, err)
 		assert.Equal(t, "hello user", resp)
 
-		numReqs, numHits = cachedProvider.GetCacheStats()
-		assert.Equal(t, 2, numReqs)
-		assert.Equal(t, 1, numHits)
+		cs = cachedProvider.GetCacheStats()
+		assert.Equal(t, 2, cs.NumRequests)
+		assert.Equal(t, 1, cs.NumCacheHits)
 	})
 
 	t.Run("embedder", func(t *testing.T) {
@@ -70,17 +71,17 @@ func TestCachedProvider(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []float32{1.0, 2.0, 3.0}, resp.Data[0].Values)
 
-		numReqs, numHits := cachedProvider.GetCacheStats()
-		assert.Equal(t, 1, numReqs)
-		assert.Equal(t, 0, numHits)
+		cs := cachedProvider.GetCacheStats()
+		assert.Equal(t, 1, cs.NumRequests)
+		assert.Equal(t, 0, cs.NumCacheHits)
 
 		resp, err = cachedProvider.GenerateEmbedding(ctx, req)
 		assert.NoError(t, err)
 		assert.Equal(t, []float32{1.0, 2.0, 3.0}, resp.Data[0].Values)
 
-		numReqs, numHits = cachedProvider.GetCacheStats()
-		assert.Equal(t, 2, numReqs)
-		assert.Equal(t, 1, numHits)
+		cs = cachedProvider.GetCacheStats()
+		assert.Equal(t, 2, cs.NumRequests)
+		assert.Equal(t, 1, cs.NumCacheHits)
 
 		req = llm.EmbedRequest{
 			Input: []string{"abc", "def"},
@@ -107,8 +108,8 @@ func TestCachedProvider(t *testing.T) {
 		assert.Equal(t, []float32{1.0, 2.0, 3.0}, resp.Data[0].Values)
 		assert.Equal(t, []float32{2.0, 3.0, 4.0}, resp.Data[1].Values)
 
-		numReqs, numHits = cachedProvider.GetCacheStats()
-		assert.Equal(t, 4, numReqs)
-		assert.Equal(t, 2, numHits)
+		cs = cachedProvider.GetCacheStats()
+		assert.Equal(t, 4, cs.NumRequests)
+		assert.Equal(t, 2, cs.NumCacheHits)
 	})
 }
