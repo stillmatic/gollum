@@ -30,6 +30,8 @@ const (
 	ConfigTogetherDeepseekCoder33B = "together-deepseek-coder-33b"
 
 	ConfigGeminiFlash  = "gemini-flash"
+	ConfigGeminiFlash8B  = "gemini-flash-8b"
+	ConfigGeminiFlashExp = "gemini-flash-exp"
 	ConfigGeminiPro    = "gemini-pro"
 	ConfigGeminiProExp = "gemini-pro-exp"
 
@@ -93,13 +95,21 @@ var configs = map[string]ModelConfig{
 		ProviderType: ProviderGoogle,
 		ModelName:    "gemini-1.5-flash",
 	},
+	ConfigGeminiFlashExp: {
+		ProviderType: ProviderGoogle,
+		ModelName:    "gemini-1.5-flash-exp-0827",
+	},
+	ConfigGeminiFlash8B: {
+		ProviderType: ProviderGoogle,
+		ModelName:    "gemini-1.5-flash-8b-exp-0827",
+	},
 	ConfigGeminiPro: {
 		ProviderType: ProviderGoogle,
 		ModelName:    "gemini-1.5-pro",
 	},
 	ConfigGeminiProExp: {
 		ProviderType: ProviderGoogle,
-		ModelName:    "gemini-1.5-pro-exp-0801",
+		ModelName:    "gemini-1.5-pro-exp-0827",
 	},
 	ConfigHyperbolicLlama405B: {
 		ProviderType: ProviderHyperbolic,
