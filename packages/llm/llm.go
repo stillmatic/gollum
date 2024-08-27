@@ -6,11 +6,20 @@ import (
 )
 
 type ProviderType string
+type ModelType string
+
+// yuck sorry
+const (
+	ModelTypeLLM       ModelType = "llm"
+	ModelTypeEmbedding ModelType = "embedding"
+)
 
 type ModelConfig struct {
 	ProviderType ProviderType
 	ModelName    string
 	BaseURL      string
+
+	ModelType ModelType
 }
 
 // MessageOptions are options that can be passed to the model for generating a response.
