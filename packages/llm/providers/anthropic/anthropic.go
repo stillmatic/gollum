@@ -30,13 +30,19 @@ func NewAnthropicProviderWithCache(apiKey string) *Provider {
 	}
 }
 
-func reqToMessages(req llm.InferRequest) ([]anthropic.Message, error) {
+func reqToMessages(req llm.InferRequest) ([]anthropic.Message, *string, error) {
+	systemPrompt := ""
 	msgs := make([]anthropic.Message, 0)
 	for _, m := range req.Messages {
+		if m.Role == "system" {
+			systemPrompt += m.Content
+			continue
+		}
+
 		// only allow user and assistant roles
 		// TODO: this should be a little cleaner...
 		if !(slices.Index([]string{anthropic.RoleUser, anthropic.RoleAssistant}, m.Role) > -1) {
-			return nil, errors.New("invalid role")
+			return nil, nil, errors.New("invalid role")
 		}
 		content := make([]anthropic.MessageContent, 0)
 		txtContent := anthropic.NewTextMessageContent(m.Content)
@@ -59,21 +65,28 @@ func reqToMessages(req llm.InferRequest) ([]anthropic.Message, error) {
 		msgs = append(msgs, newMsg)
 	}
 
-	return msgs, nil
+	if systemPrompt != "" {
+		return msgs, &systemPrompt, nil
+	}
+	return msgs, nil, nil
 }
 
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
-	msgs, err := reqToMessages(req)
+	msgs, systemPrompt, err := reqToMessages(req)
 	if err != nil {
 		return "", errors.Wrap(err, "invalid messages")
 	}
+	msgsReq := anthropic.MessagesRequest{
+		Model:       req.ModelConfig.ModelName,
+		Messages:    msgs,
+		MaxTokens:   req.MessageOptions.MaxTokens,
+		Temperature: &req.MessageOptions.Temperature,
+	}
+	if systemPrompt != nil {
+		msgsReq.System = *systemPrompt
+	}
 	res, err := p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
-		MessagesRequest: anthropic.MessagesRequest{
-			Model:       req.ModelConfig.ModelName,
-			Messages:    msgs,
-			MaxTokens:   req.MessageOptions.MaxTokens,
-			Temperature: &req.MessageOptions.Temperature,
-		},
+		MessagesRequest: msgsReq,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "anthropic messages stream error")
@@ -86,19 +99,23 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 	outChan := make(chan llm.StreamDelta)
 	go func() {
 		defer close(outChan)
-		msgs, err := reqToMessages(req)
+		msgs, systemPrompt, err := reqToMessages(req)
 		if err != nil {
 			slog.Error("invalid messages", "err", err)
 			return
 		}
+		msgsReq := anthropic.MessagesRequest{
+			Model:       req.ModelConfig.ModelName,
+			Messages:    msgs,
+			MaxTokens:   req.MessageOptions.MaxTokens,
+			Temperature: &req.MessageOptions.Temperature,
+		}
+		if systemPrompt != nil {
+			msgsReq.System = *systemPrompt
+		}
 
 		_, err = p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
-			MessagesRequest: anthropic.MessagesRequest{
-				Model:       req.ModelConfig.ModelName,
-				Messages:    msgs,
-				MaxTokens:   req.MessageOptions.MaxTokens,
-				Temperature: &req.MessageOptions.Temperature,
-			},
+			MessagesRequest: msgsReq,
 			OnContentBlockDelta: func(data anthropic.MessagesEventContentBlockDeltaData) {
 				if data.Delta.Text == nil {
 					outChan <- llm.StreamDelta{
