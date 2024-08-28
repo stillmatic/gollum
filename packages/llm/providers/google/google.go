@@ -205,27 +205,43 @@ func singleTurnMessageToParts(message llm.InferMessage) []genai.Part {
 	return parts
 }
 
-func multiTurnMessageToParts(messages []llm.InferMessage) []*genai.Content {
+func multiTurnMessageToParts(messages []llm.InferMessage) ([]*genai.Content, *genai.Content) {
+	sysInstructionParts := make([]genai.Part, 0)
 	hist := make([]*genai.Content, 0, len(messages))
 	for _, message := range messages {
 		parts := []genai.Part{genai.Text(message.Content)}
 		if message.Image != nil && len(message.Image) > 0 {
 			parts = append(parts, genai.ImageData("png", message.Image))
 		}
+		if message.Role == "system" {
+			sysInstructionParts = append(sysInstructionParts, parts...)
+			continue
+		}
 		hist = append(hist, &genai.Content{
 			Parts: parts,
 			Role:  message.Role,
 		})
 	}
-	return hist
+	if len(sysInstructionParts) > 0 {
+		return hist, &genai.Content{
+			Parts: sysInstructionParts,
+		}
+	}
+
+	return hist, nil
 }
 
 func (p *Provider) generateResponseChat(ctx context.Context, req llm.InferRequest) (string, error) {
 	model := p.getModel(req)
-	cs := model.StartChat()
 
 	// annoyingly, the last message is the one we want to generate a response to, so we need to split it out
-	cs.History = multiTurnMessageToParts(req.Messages[:len(req.Messages)-1])
+	msgs, sysInstr := multiTurnMessageToParts(req.Messages[:len(req.Messages)-1])
+	if sysInstr != nil {
+		model.SystemInstruction = sysInstr
+	}
+
+	cs := model.StartChat()
+	cs.History = msgs
 	mostRecentMessage := req.Messages[len(req.Messages)-1]
 
 	// NB chua: this might be a bug but Google doesn't seem to accept multiple parts in the same message
@@ -294,9 +310,13 @@ func (p *Provider) generateResponseAsyncChat(ctx context.Context, req llm.InferR
 		defer close(outChan)
 
 		model := p.getModel(req)
+		msgs, sysInstr := multiTurnMessageToParts(req.Messages[:len(req.Messages)-1])
+		if sysInstr != nil {
+			model.SystemInstruction = sysInstr
+		}
 		cs := model.StartChat()
+		cs.History = msgs
 
-		cs.History = multiTurnMessageToParts(req.Messages[:len(req.Messages)-1])
 		mostRecentMessage := req.Messages[len(req.Messages)-1]
 
 		iter := cs.SendMessageStream(ctx, genai.Text(mostRecentMessage.Content))
