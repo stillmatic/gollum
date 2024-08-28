@@ -19,7 +19,9 @@ type ModelConfig struct {
 	ModelName    string
 	BaseURL      string
 
-	ModelType ModelType
+	ModelType                        ModelType
+	CentiCentsPerMillionInputTokens  int
+	CentiCentsPerMillionOutputTokens int
 }
 
 // MessageOptions are options that can be passed to the model for generating a response.
