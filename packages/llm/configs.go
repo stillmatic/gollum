@@ -3,6 +3,7 @@ package llm
 const (
 	ProviderAnthropic ProviderType = "anthropic"
 	ProviderGoogle    ProviderType = "google"
+	ProviderVertex    ProviderType = "vertex"
 
 	ProviderOpenAI     ProviderType = "openai"
 	ProviderGroq       ProviderType = "groq"
@@ -18,8 +19,9 @@ const (
 const (
 	// LLM models
 	ConfigClaude3Dot5Sonnet = "claude-3.5-sonnet"
-	ConfigGPT4Mini          = "gpt-4-mini"
-	ConfigGPT4o             = "gpt-4o"
+
+	ConfigGPT4Mini = "gpt-4-mini"
+	ConfigGPT4o    = "gpt-4o"
 
 	ConfigGroqLlama70B = "groq-llama-70b"
 	ConfigGroqLlama8B  = "groq-llama-8b"
@@ -43,6 +45,10 @@ const (
 	ConfigDeepseekChat  = "deepseek-chat"
 	ConfigDeepseekCoder = "deepseek-coder"
 
+	// Vertex
+	ConfigClaude3Dot5SonnetVertex = "claude-3.5-sonnet-vertex"
+	ConfigLlama405BVertex         = "llama-405b-vertex"
+
 	// Embedding models
 	ConfigOpenAITextEmbedding3Small = "openai-text-embedding-3-small"
 	ConfigOpenAITextEmbedding3Large = "openai-text-embedding-3-large"
@@ -61,6 +67,19 @@ var configs = map[string]ModelConfig{
 		ModelType:                        ModelTypeLLM,
 		CentiCentsPerMillionInputTokens:  30000,
 		CentiCentsPerMillionOutputTokens: 150000,
+	},
+	ConfigClaude3Dot5SonnetVertex: {
+		ProviderType:                     ProviderVertex,
+		ModelName:                        "claude-3-5-sonnet@20240620",
+		ModelType:                        ModelTypeLLM,
+		CentiCentsPerMillionInputTokens:  30000,
+		CentiCentsPerMillionOutputTokens: 150000,
+	},
+	ConfigLlama405BVertex: {
+		ProviderType: ProviderVertex,
+		ModelName:    "llama3-405b-instruct-maas",
+		ModelType:    ModelTypeLLM,
+		//	The Llama 3.1 API service is at no cost during public preview, and will be priced as per dollar-per-1M-tokens at GA.
 	},
 	ConfigGPT4Mini: {
 		ProviderType:                     ProviderOpenAI,
