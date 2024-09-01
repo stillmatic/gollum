@@ -30,12 +30,21 @@ func NewAnthropicProviderWithCache(apiKey string) *Provider {
 	}
 }
 
-func reqToMessages(req llm.InferRequest) ([]anthropic.Message, *string, error) {
-	systemPrompt := ""
+func reqToMessages(req llm.InferRequest) ([]anthropic.Message, []anthropic.MessageSystemPart, error) {
 	msgs := make([]anthropic.Message, 0)
+	systemMsgs := make([]anthropic.MessageSystemPart, 0)
 	for _, m := range req.Messages {
 		if m.Role == "system" {
-			systemPrompt += m.Content
+			msgContent := anthropic.MessageSystemPart{
+				Type: "text",
+				Text: m.Content,
+			}
+			if m.ShouldCache {
+				msgContent.CacheControl = &anthropic.MessageCacheControl{
+					Type: anthropic.CacheControlTypeEphemeral,
+				}
+			}
+			systemMsgs = append(systemMsgs, msgContent)
 			continue
 		}
 
@@ -65,10 +74,7 @@ func reqToMessages(req llm.InferRequest) ([]anthropic.Message, *string, error) {
 		msgs = append(msgs, newMsg)
 	}
 
-	if systemPrompt != "" {
-		return msgs, &systemPrompt, nil
-	}
-	return msgs, nil, nil
+	return msgs, systemMsgs, nil
 }
 
 func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (string, error) {
@@ -82,8 +88,8 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 		MaxTokens:   req.MessageOptions.MaxTokens,
 		Temperature: &req.MessageOptions.Temperature,
 	}
-	if systemPrompt != nil {
-		msgsReq.System = *systemPrompt
+	if systemPrompt != nil && len(systemPrompt) > 0 {
+		msgsReq.MultiSystem = systemPrompt
 	}
 	res, err := p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{
 		MessagesRequest: msgsReq,
@@ -111,7 +117,7 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 			Temperature: &req.MessageOptions.Temperature,
 		}
 		if systemPrompt != nil {
-			msgsReq.System = *systemPrompt
+			msgsReq.MultiSystem = systemPrompt
 		}
 
 		_, err = p.client.CreateMessagesStream(ctx, anthropic.MessagesStreamRequest{

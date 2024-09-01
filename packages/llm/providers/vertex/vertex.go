@@ -69,20 +69,18 @@ func (p *VertexAIProvider) generateResponseSingleTurn(ctx context.Context, req l
 
 func (p *VertexAIProvider) generateResponseMultiTurn(ctx context.Context, req llm.InferRequest) (string, error) {
 	model := p.getModel(req)
-	cs := model.StartChat()
 
-	// Add previous messages to chat history
-	for _, msg := range req.Messages[:len(req.Messages)-1] {
-		parts := messageToParts(msg)
-		cs.History = append(cs.History, &genai.Content{
-			Parts: parts,
-			Role:  msg.Role,
-		})
+	msgs, sysInstr := multiTurnMessageToParts(req.Messages[:len(req.Messages)-1])
+	if sysInstr != nil {
+		model.SystemInstruction = sysInstr
 	}
 
+	cs := model.StartChat()
+	cs.History = msgs
+	mostRecentMessage := req.Messages[len(req.Messages)-1]
+
 	// Send the last message
-	lastMsg := req.Messages[len(req.Messages)-1]
-	resp, err := cs.SendMessage(ctx, messageToParts(lastMsg)...)
+	resp, err := cs.SendMessage(ctx, genai.Text(mostRecentMessage.Content))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to send message in chat")
 	}
@@ -186,6 +184,32 @@ func messageToParts(message llm.InferMessage) []genai.Part {
 		parts = append(parts, genai.ImageData("png", message.Image))
 	}
 	return parts
+}
+
+func multiTurnMessageToParts(messages []llm.InferMessage) ([]*genai.Content, *genai.Content) {
+	sysInstructionParts := make([]genai.Part, 0)
+	hist := make([]*genai.Content, 0, len(messages))
+	for _, message := range messages {
+		parts := []genai.Part{genai.Text(message.Content)}
+		if message.Image != nil && len(message.Image) > 0 {
+			parts = append(parts, genai.ImageData("png", message.Image))
+		}
+		if message.Role == "system" {
+			sysInstructionParts = append(sysInstructionParts, parts...)
+			continue
+		}
+		hist = append(hist, &genai.Content{
+			Parts: parts,
+			Role:  message.Role,
+		})
+	}
+	if len(sysInstructionParts) > 0 {
+		return hist, &genai.Content{
+			Parts: sysInstructionParts,
+		}
+	}
+
+	return hist, nil
 }
 
 func flattenResponse(resp *genai.GenerateContentResponse) string {
