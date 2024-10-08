@@ -2,12 +2,13 @@ package google
 
 import (
 	"context"
-	"github.com/cespare/xxhash/v2"
-	"github.com/stillmatic/gollum/packages/llm"
-	"google.golang.org/api/option"
 	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/cespare/xxhash/v2"
+	"github.com/stillmatic/gollum/packages/llm"
+	"google.golang.org/api/option"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/pkg/errors"
@@ -72,6 +73,10 @@ func (p *Provider) refreshCachedContentMap(ctx context.Context) error {
 
 func getHash(value string) string {
 	return string(xxhash.New().Sum([]byte(value)))
+}
+
+func getHashBytes(value []byte) string {
+	return string(xxhash.New().Sum(value))
 }
 
 func (p *Provider) uploadFile(ctx context.Context, key string, value string) (*genai.File, error) {
@@ -153,6 +158,7 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 	// it is slightly better to build a trie, indexed on hashes of each message
 	// since we can quickly get based on the prefix (i.e. existing messages)
 	// but ... your number of messages is probably not THAT high to justify the complexity.
+	// NB: trie also not useful for images/audio
 	messagesToCache := make([]llm.InferMessage, 0)
 	for _, message := range req.Messages {
 		if message.ShouldCache {
@@ -169,6 +175,12 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 			// it is possible to have collision between user + assistant content being identical
 			// this feels like a rare case especially given that we are ordering sensitive in the hash.
 			hashKeys = append(hashKeys, getHash(message.Content))
+			if len(message.Image) > 0 {
+				hashKeys = append(hashKeys, getHashBytes(message.Image))
+			}
+			if len(message.Audio) > 0 {
+				hashKeys = append(hashKeys, getHashBytes(message.Audio))
+			}
 		}
 		joinedKey := strings.Join(hashKeys, "/")
 		var cachedContent *genai.CachedContent
@@ -199,9 +211,15 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 
 func singleTurnMessageToParts(message llm.InferMessage) []genai.Part {
 	parts := []genai.Part{genai.Text(message.Content)}
-	if message.Image != nil && len(message.Image) > 0 {
+	if len(message.Image) > 0 {
+		// TODO: set the image type based on the actual image type
 		parts = append(parts, genai.ImageData("png", message.Image))
 	}
+	// if len(message.Audio) > 0 {
+	// 	// TODO: set the audio type based on the actual audio type
+	// 	parts = append(parts, genai.("wav", message.Audio))
+	// }
+
 	return parts
 }
 
@@ -210,7 +228,7 @@ func multiTurnMessageToParts(messages []llm.InferMessage) ([]*genai.Content, *ge
 	hist := make([]*genai.Content, 0, len(messages))
 	for _, message := range messages {
 		parts := []genai.Part{genai.Text(message.Content)}
-		if message.Image != nil && len(message.Image) > 0 {
+		if len(message.Image) > 0 {
 			parts = append(parts, genai.ImageData("png", message.Image))
 		}
 		if message.Role == "system" {

@@ -35,6 +35,7 @@ type InferMessage struct {
 	Content string
 	Role    string
 	Image   []byte
+	Audio   []byte
 
 	ShouldCache bool
 }
