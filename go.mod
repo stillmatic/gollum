@@ -9,7 +9,7 @@ require (
 	github.com/chewxy/math32 v1.10.1
 	github.com/google/generative-ai-go v0.17.0
 	github.com/google/uuid v1.6.0
-	github.com/invopop/jsonschema v0.12.0
+	github.com/invopop/jsonschema v0.13.0
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.17.2
 	github.com/liushuangls/go-anthropic/v2 v2.6.0
