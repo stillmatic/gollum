@@ -190,7 +190,7 @@ var configs = map[string]ModelConfig{
 	},
 	ConfigGemini2Flash: {
 		ProviderType: ProviderGoogle,
-		ModelName:    "gemini-2-flash-exp",
+		ModelName:    "gemini-2.0-flash-exp",
 	},
 	ConfigHyperbolicLlama405B: {
 		ProviderType: ProviderHyperbolic,
