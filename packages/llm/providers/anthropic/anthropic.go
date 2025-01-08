@@ -3,9 +3,10 @@ package anthropic
 import (
 	"context"
 	"encoding/base64"
-	"github.com/stillmatic/gollum/packages/llm"
 	"log/slog"
 	"slices"
+
+	"github.com/stillmatic/gollum/packages/llm"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/pkg/errors"
@@ -50,7 +51,7 @@ func reqToMessages(req llm.InferRequest) ([]anthropic.Message, []anthropic.Messa
 
 		// only allow user and assistant roles
 		// TODO: this should be a little cleaner...
-		if !(slices.Index([]string{anthropic.RoleUser, anthropic.RoleAssistant}, m.Role) > -1) {
+		if !(slices.Index([]string{string(anthropic.RoleUser), string(anthropic.RoleAssistant)}, m.Role) > -1) {
 			return nil, nil, errors.New("invalid role")
 		}
 		content := make([]anthropic.MessageContent, 0)
@@ -64,10 +65,10 @@ func reqToMessages(req llm.InferRequest) ([]anthropic.Message, []anthropic.Messa
 			b64Image := base64.StdEncoding.EncodeToString(m.Image)
 			// TODO: support other image types
 			content = append(content, anthropic.NewImageMessageContent(
-				anthropic.MessageContentImageSource{Type: "base64", MediaType: "image/png", Data: b64Image}))
+				anthropic.MessageContentSource{Type: "base64", MediaType: "image/png", Data: b64Image}))
 		}
 		newMsg := anthropic.Message{
-			Role:    m.Role,
+			Role:    anthropic.ChatRole(m.Role),
 			Content: content,
 		}
 
@@ -83,7 +84,7 @@ func (p *Provider) GenerateResponse(ctx context.Context, req llm.InferRequest) (
 		return "", errors.Wrap(err, "invalid messages")
 	}
 	msgsReq := anthropic.MessagesRequest{
-		Model:       req.ModelConfig.ModelName,
+		Model:       anthropic.Model(req.ModelConfig.ModelName),
 		Messages:    msgs,
 		MaxTokens:   req.MessageOptions.MaxTokens,
 		Temperature: &req.MessageOptions.Temperature,
@@ -111,7 +112,7 @@ func (p *Provider) GenerateResponseAsync(ctx context.Context, req llm.InferReque
 			return
 		}
 		msgsReq := anthropic.MessagesRequest{
-			Model:       req.ModelConfig.ModelName,
+			Model:       anthropic.Model(req.ModelConfig.ModelName),
 			Messages:    msgs,
 			MaxTokens:   req.MessageOptions.MaxTokens,
 			Temperature: &req.MessageOptions.Temperature,
