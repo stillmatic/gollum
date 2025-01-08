@@ -16,7 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/sashabaranov/go-openai v1.36.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/viterin/vek v0.4.2
 	go.uber.org/mock v0.3.0
 	gocloud.dev v0.38.0
