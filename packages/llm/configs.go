@@ -18,10 +18,17 @@ const (
 // configs are user declared, here's some useful defaults
 const (
 	// LLM models
+
+	// aka claude 3.6
+	ConfigClaude3Dot6Sonnet = "claude-3.6-sonnet"
+	// the traditional 3.5
 	ConfigClaude3Dot5Sonnet = "claude-3.5-sonnet"
 
-	ConfigGPT4Mini = "gpt-4-mini"
-	ConfigGPT4o    = "gpt-4o"
+	ConfigGPT4Mini        = "gpt-4-mini"
+	ConfigGPT4o           = "gpt-4o"
+	ConfigOpenAIO1        = "oai-o1"
+	ConfigOpenAIO1Mini    = "oai-o1-mini"
+	ConfigOpenAIO1Preview = "oai-o1-preview"
 
 	ConfigGroqLlama70B = "groq-llama-70b"
 	ConfigGroqLlama8B  = "groq-llama-8b"
@@ -31,11 +38,10 @@ const (
 	ConfigTogetherGemma27B         = "together-gemma-27b"
 	ConfigTogetherDeepseekCoder33B = "together-deepseek-coder-33b"
 
-	ConfigGeminiFlash    = "gemini-flash"
-	ConfigGeminiFlash8B  = "gemini-flash-8b"
-	ConfigGeminiFlashExp = "gemini-flash-exp"
-	ConfigGeminiPro      = "gemini-pro"
-	ConfigGeminiProExp   = "gemini-pro-exp"
+	ConfigGemini1Dot5Flash8B = "gemini-flash-8b"
+	ConfigGemini1Dot5Flash   = "gemini-flash"
+	ConfigGemini1Dot5Pro     = "gemini-pro"
+	ConfigGemini2Flash       = "gemini-2-flash"
 
 	ConfigHyperbolicLlama405B     = "hyperbolic-llama-405b"
 	ConfigHyperbolicLlama405BBase = "hyperbolic-llama-405b-base"
@@ -81,24 +87,45 @@ var configs = map[string]ModelConfig{
 		ModelType:    ModelTypeLLM,
 		//	The Llama 3.1 API service is at no cost during public preview, and will be priced as per dollar-per-1M-tokens at GA.
 	},
+	ConfigClaude3Dot6Sonnet: {
+		ProviderType: ProviderAnthropic,
+		ModelName:    "claude-3-5-sonnet-20241022",
+	},
 	ConfigGPT4Mini: {
 		ProviderType:                     ProviderOpenAI,
 		ModelName:                        "gpt-4o-mini",
 		ModelType:                        ModelTypeLLM,
-		CentiCentsPerMillionInputTokens:  1500,
-		CentiCentsPerMillionOutputTokens: 6000,
+		CentiCentsPerMillionInputTokens:  1_500,
+		CentiCentsPerMillionOutputTokens: 6_000,
 	},
 	ConfigGPT4o: {
-		ProviderType:                     ProviderOpenAI,
+		ProviderType: ProviderOpenAI,
+		// NB 2025-01-08: 2024-08-06 remains 'latest', but there is also 'gpt-4o-2024-11-20'
 		ModelName:                        "gpt-4o-2024-08-06",
-		ModelType:                        ModelTypeLLM,
-		CentiCentsPerMillionInputTokens:  25000,
-		CentiCentsPerMillionOutputTokens: 100000,
+		CentiCentsPerMillionInputTokens:  25_000,
+		CentiCentsPerMillionOutputTokens: 100_000,
+	},
+	ConfigOpenAIO1: {
+		ProviderType:                     ProviderOpenAI,
+		ModelName:                        "o1",
+		CentiCentsPerMillionInputTokens:  150_000,
+		CentiCentsPerMillionOutputTokens: 600_000,
+	},
+	ConfigOpenAIO1Mini: {
+		ProviderType:                     ProviderOpenAI,
+		ModelName:                        "o1-mini",
+		CentiCentsPerMillionInputTokens:  30_000,
+		CentiCentsPerMillionOutputTokens: 120_000,
+	},
+	ConfigOpenAIO1Preview: {
+		ProviderType:                     ProviderOpenAI,
+		ModelName:                        "o1-preview",
+		CentiCentsPerMillionInputTokens:  150_000,
+		CentiCentsPerMillionOutputTokens: 600_000,
 	},
 	ConfigGroqLlama70B: {
 		ProviderType:                     ProviderGroq,
-		ModelName:                        "llama3-70b-8192",
-		ModelType:                        ModelTypeLLM,
+		ModelName:                        "llama-3.3-70b-versatile",
 		CentiCentsPerMillionInputTokens:  5900,
 		CentiCentsPerMillionOutputTokens: 7900,
 	},
@@ -118,10 +145,10 @@ var configs = map[string]ModelConfig{
 	},
 	ConfigGroqLlama8B: {
 		ProviderType:                     ProviderGroq,
-		ModelName:                        "llama3-8b-8192",
 		ModelType:                        ModelTypeLLM,
 		CentiCentsPerMillionInputTokens:  500,
 		CentiCentsPerMillionOutputTokens: 800,
+		ModelName:                        "llama-3.1-8b-instant",
 	},
 	ConfigTogetherGemma27B: {
 		ProviderType:                     ProviderTogether,
@@ -137,7 +164,7 @@ var configs = map[string]ModelConfig{
 		CentiCentsPerMillionOutputTokens: 8000,
 		CentiCentsPerMillionInputTokens:  8000,
 	},
-	ConfigGeminiFlash: {
+	ConfigGemini1Dot5Flash: {
 		ProviderType: ProviderGoogle,
 		ModelName:    "gemini-1.5-flash",
 		ModelType:    ModelTypeLLM,
@@ -145,37 +172,25 @@ var configs = map[string]ModelConfig{
 		CentiCentsPerMillionOutputTokens: 3000,
 		CentiCentsPerMillionInputTokens:  750,
 	},
-	ConfigGeminiFlashExp: {
+	ConfigGemini1Dot5Flash8B: {
 		ProviderType: ProviderGoogle,
-		ModelName:    "gemini-1.5-flash-exp-0827",
+		ModelName:    "gemini-1.5-flash-8b",
 		ModelType:    ModelTypeLLM,
 		// assumes < 128k
-		CentiCentsPerMillionOutputTokens: 3000,
-		CentiCentsPerMillionInputTokens:  750,
+		CentiCentsPerMillionOutputTokens: 1500,
+		CentiCentsPerMillionInputTokens:  375,
 	},
-	ConfigGeminiFlash8B: {
-		ProviderType: ProviderGoogle,
-		ModelName:    "gemini-1.5-flash-8b-exp-0827",
-		ModelType:    ModelTypeLLM,
-		// "pricing is TBD"
-		CentiCentsPerMillionOutputTokens: 3000,
-		CentiCentsPerMillionInputTokens:  750,
-	},
-	ConfigGeminiPro: {
+	ConfigGemini1Dot5Pro: {
 		ProviderType: ProviderGoogle,
 		ModelName:    "gemini-1.5-pro",
 		ModelType:    ModelTypeLLM,
 		// assumes < 128k
-		CentiCentsPerMillionOutputTokens: 35000,
-		CentiCentsPerMillionInputTokens:  105000,
+		CentiCentsPerMillionOutputTokens: 50000,
+		CentiCentsPerMillionInputTokens:  12500,
 	},
-	ConfigGeminiProExp: {
+	ConfigGemini2Flash: {
 		ProviderType: ProviderGoogle,
-		ModelName:    "gemini-1.5-pro-exp-0827",
-		ModelType:    ModelTypeLLM,
-		// assumes < 128k
-		CentiCentsPerMillionOutputTokens: 35000,
-		CentiCentsPerMillionInputTokens:  105000,
+		ModelName:    "gemini-2-flash-exp",
 	},
 	ConfigHyperbolicLlama405B: {
 		ProviderType: ProviderHyperbolic,
