@@ -21,7 +21,7 @@ require (
 	go.uber.org/mock v0.3.0
 	gocloud.dev v0.38.0
 	google.golang.org/api v0.215.0
-	modernc.org/sqlite v1.32.0
+	modernc.org/sqlite v1.34.5
 )
 
 require (
