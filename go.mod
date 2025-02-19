@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/joho/godotenv v1.5.1
-	github.com/klauspost/compress v1.17.2
+	github.com/klauspost/compress v1.18.0
 	github.com/liushuangls/go-anthropic/v2 v2.13.0
 	github.com/pkg/errors v0.9.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
