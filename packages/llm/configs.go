@@ -23,12 +23,14 @@ const (
 	ConfigClaude3Dot6Sonnet = "claude-3.6-sonnet"
 	// the traditional 3.5
 	ConfigClaude3Dot5Sonnet = "claude-3.5-sonnet"
+	ConfigClaude3Dot7Sonnet = "claude-3.7-sonnet"
 
 	ConfigGPT4Mini        = "gpt-4-mini"
 	ConfigGPT4o           = "gpt-4o"
 	ConfigOpenAIO1        = "oai-o1"
 	ConfigOpenAIO1Mini    = "oai-o1-mini"
 	ConfigOpenAIO1Preview = "oai-o1-preview"
+	ConfigOpenAIO3Mini    = "oai-o3-mini"
 
 	ConfigGroqLlama70B = "groq-llama-70b"
 	ConfigGroqLlama8B  = "groq-llama-8b"
@@ -91,6 +93,10 @@ var configs = map[string]ModelConfig{
 		ProviderType: ProviderAnthropic,
 		ModelName:    "claude-3-5-sonnet-20241022",
 	},
+	ConfigClaude3Dot7Sonnet: {
+		ProviderType: ProviderAnthropic,
+		ModelName:    "claude-3-7-sonnet-latest",
+	},
 	ConfigGPT4Mini: {
 		ProviderType:                     ProviderOpenAI,
 		ModelName:                        "gpt-4o-mini",
@@ -116,6 +122,12 @@ var configs = map[string]ModelConfig{
 		ModelName:                        "o1-mini",
 		CentiCentsPerMillionInputTokens:  30_000,
 		CentiCentsPerMillionOutputTokens: 120_000,
+	},
+	ConfigOpenAIO3Mini: {
+		ProviderType:                     ProviderOpenAI,
+		ModelName:                        "o3-mini",
+		CentiCentsPerMillionInputTokens:  150_000,
+		CentiCentsPerMillionOutputTokens: 600_000,
 	},
 	ConfigOpenAIO1Preview: {
 		ProviderType:                     ProviderOpenAI,
@@ -190,7 +202,7 @@ var configs = map[string]ModelConfig{
 	},
 	ConfigGemini2Flash: {
 		ProviderType: ProviderGoogle,
-		ModelName:    "gemini-2.0-flash-exp",
+		ModelName:    "gemini-2.0-flash",
 	},
 	ConfigHyperbolicLlama405B: {
 		ProviderType: ProviderHyperbolic,
