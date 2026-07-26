@@ -1,6 +1,6 @@
 module github.com/stillmatic/gollum
 
-go 1.23
+go 1.23.0
 
 require (
 	cloud.google.com/go/vertexai v0.13.0
@@ -18,7 +18,7 @@ require (
 	github.com/sashabaranov/go-openai v1.36.1
 	github.com/stretchr/testify v1.9.0
 	github.com/viterin/vek v0.4.2
-	go.uber.org/mock v0.3.0
+	go.uber.org/mock v0.6.0
 	gocloud.dev v0.38.0
 	google.golang.org/api v0.215.0
 	modernc.org/sqlite v1.32.0
@@ -63,7 +63,7 @@ require (
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
