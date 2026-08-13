@@ -1,6 +1,6 @@
 module github.com/stillmatic/gollum
 
-go 1.23
+go 1.23.0
 
 require (
 	cloud.google.com/go/vertexai v0.13.0
@@ -12,11 +12,11 @@ require (
 	github.com/invopop/jsonschema v0.12.0
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.17.2
-	github.com/liushuangls/go-anthropic/v2 v2.13.0
+	github.com/liushuangls/go-anthropic/v2 v2.25.0
 	github.com/pkg/errors v0.9.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/sashabaranov/go-openai v1.36.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 	github.com/viterin/vek v0.4.2
 	go.uber.org/mock v0.3.0
 	gocloud.dev v0.38.0
